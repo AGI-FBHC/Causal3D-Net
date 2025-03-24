@@ -3,5 +3,6 @@
 # @Author  : D.N. Huang
 # @Email   : CarlCypress@yeah.net
 # @FileName: model.py
-# @Project : my_template
+# @Project : Causal3D-Net
+
 print('hello world!')
