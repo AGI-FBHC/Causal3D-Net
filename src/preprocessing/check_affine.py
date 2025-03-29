@@ -73,7 +73,9 @@ def change_mask_affine():
         updated_mask_nii = nib.Nifti1Image(mask_nii.get_fdata(), image_nii.affine, header=image_nii.header)
         output_mask_path = mask_path.replace(".nii.gz", "_updated.nii.gz")
         nib.save(updated_mask_nii, mask_path)
-        break
+        print(f"Mask image has saved to {mask_path}")
+        if index == 1:
+            break
     pass
 
 

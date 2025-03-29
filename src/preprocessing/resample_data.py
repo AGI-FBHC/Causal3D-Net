@@ -4,6 +4,8 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: resample_data.py
 # @Project : Causal3D-Net
+import shutil
+import logging
 import numpy as np
 import pandas as pd
 import os, argparse
@@ -14,7 +16,7 @@ from scipy.ndimage import zoom
 def resample_z_direction(
         nii_path: str,
         is_mask: bool = False,
-        output_file: str = 'output.nii.gz',
+        output_path: str = 'output.nii.gz',
         spacing: float = 1.0,
         target_depth: int = None,
         is_print: bool = False
@@ -23,7 +25,7 @@ def resample_z_direction(
     则根据 target_depth 变换厚度，否则根据物理距离 spacing.
     :param nii_path: 输入的 nifti 文件路径。
     :param is_mask: 是否是掩码文件?
-    :param output_file: 重采样后保存的文件路径。
+    :param output_path: 重采样后保存的文件路径。
     :param spacing: z 轴的新体素间距(单位：mm)。
     :param target_depth: z轴采样目标厚度(单位：pixel)。
     :param is_print: 是否打印文件处理状态?
@@ -57,7 +59,7 @@ def resample_z_direction(
     new_img.header['pixdim'][3] = spacing  # 更新 z 轴体素间距
     new_img.header['srow_z'] = new_affine[2, :4]  # 更新 srow_z（仿射矩阵的第 3 行）
 
-    nib.save(new_img, output_file)
+    nib.save(new_img, output_path)
 
     print(f'resampling {nii_path} completed.') if is_print else None
     return original_depth
@@ -83,26 +85,53 @@ def resample_data():
     parser.add_argument("--out_path", type=str, default="/home/huangdn/Causal3D-Net/src/data", help="Output resampled images and masks dir path.")
     # parser.add_argument("--excel_path", type=str, required=True, help="Origin sorted images and masks Excel file path.")
     # parser.add_argument("--out_path", type=str, required=True, help="Output resampled images and masks dir path.")
-    parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")
+    parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")  # resample_num == 1时处理逻辑待完善
+    parser.add_argument("--log_path", type=str, default="/home/huangdn/Causal3D-Net/src/logging_record", help="Logging record path.")
     args = parser.parse_args()
 
+    logging.basicConfig(
+        filename=os.path.join(args.log_path, 'resample_logging.log'),  # 设置日志文件名
+        level=logging.INFO,  # 设置日志级别为 INFO（会记录 INFO 及更高级别的日志）
+        format='%(asctime)s - %(levelname)s - %(message)s'  # 日志格式
+    )
+
     dataset_excel = pd.read_excel(args.excel_path)
-    images_save_path = os.path.join(args.out_path, "images")
-    masks_save_path = os.path.join(args.out_path, "masks")
-    os.makedirs(images_save_path, exist_ok=True)
-    os.makedirs(masks_save_path, exist_ok=True)
+    images_save_dir = os.path.join(args.out_path, "images")
+    masks_save_dir = os.path.join(args.out_path, "masks")
+    data_finger_save_path = os.path.join(args.out_path, "dataset.xlsx")
+    os.makedirs(images_save_dir, exist_ok=True)
+    os.makedirs(masks_save_dir, exist_ok=True)
     z_spacing_list = get_z_spacing_list(args.resample_num)
+    data_finger = list()
     for index, row in dataset_excel.iterrows():
         image_path = row['image_path']
         mask_path = row['mask_path']
+        image_name = os.path.basename(image_path)
+        mask_name = os.path.basename(mask_path)
         cancer = row['cancer']
         image_nii = nib.load(image_path)
         mask_nii = nib.load(mask_path)
         origin_spacing = abs(image_nii.affine[2, 2])
-        print(origin_spacing, find_closest_number(z_spacing_list, origin_spacing))
+        aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
+        for z_spacing in z_spacing_list:
+            new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
+            new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
+            data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
+            if z_spacing == aligned_spacing:
+                shutil.copy(image_path, new_image_path)
+                logging.info(f"{new_image_path} completed.")
+                shutil.copy(mask_path, new_mask_path)
+                logging.info(f"{new_mask_path} completed.")
+                continue
+            resample_z_direction(nii_path=image_path, is_mask=False, output_path=new_image_path, spacing=z_spacing)
+            logging.info(f"{new_image_path} completed.")
+            resample_z_direction(nii_path=mask_path, is_mask=True, output_path=new_mask_path, spacing=z_spacing)
+            logging.info(f"{new_mask_path} completed.")
+            pass
         if index == 1:
             break
-
+    finger_df = pd.DataFrame(data_finger, columns=["image_path", "mask_path", "cancer", "raw_data"])
+    finger_df.to_excel(data_finger_save_path, index=False)
     # print(f"{images_save_path} ===== {masks_save_path}")
     pass
 
