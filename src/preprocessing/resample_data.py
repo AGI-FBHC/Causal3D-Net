@@ -67,7 +67,7 @@ def resample_z_direction(
 
 def get_z_spacing_list(resample_num):
     if resample_num == 1:
-        return list()
+        return [1]
     elif resample_num == 3:
         return [1, 3, 5]
     elif resample_num == 5:
@@ -85,20 +85,21 @@ def resample_data():
     parser.add_argument("--out_path", type=str, default="/home/huangdn/Causal3D-Net/src/data", help="Output resampled images and masks dir path.")
     # parser.add_argument("--excel_path", type=str, required=True, help="Origin sorted images and masks Excel file path.")
     # parser.add_argument("--out_path", type=str, required=True, help="Output resampled images and masks dir path.")
-    parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")  # resample_num == 1时处理逻辑待完善
+    parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")
     parser.add_argument("--log_path", type=str, default="/home/huangdn/Causal3D-Net/src/logging_record", help="Logging record path.")
     args = parser.parse_args()
 
     logging.basicConfig(
         filename=os.path.join(args.log_path, 'resample_logging.log'),  # 设置日志文件名
         level=logging.INFO,  # 设置日志级别为 INFO（会记录 INFO 及更高级别的日志）
-        format='%(asctime)s - %(levelname)s - %(message)s'  # 日志格式
+        format='%(asctime)s - %(levelname)s - %(message)s',  # 日志格式
+        filemode='w'
     )
 
     dataset_excel = pd.read_excel(args.excel_path)
     images_save_dir = os.path.join(args.out_path, "images")
     masks_save_dir = os.path.join(args.out_path, "masks")
-    data_finger_save_path = os.path.join(args.out_path, "dataset.xlsx")
+    data_finger_save_path = os.path.join(args.out_path, "data_finger.xlsx")
     os.makedirs(images_save_dir, exist_ok=True)
     os.makedirs(masks_save_dir, exist_ok=True)
     z_spacing_list = get_z_spacing_list(args.resample_num)
@@ -110,7 +111,6 @@ def resample_data():
         mask_name = os.path.basename(mask_path)
         cancer = row['cancer']
         image_nii = nib.load(image_path)
-        mask_nii = nib.load(mask_path)
         origin_spacing = abs(image_nii.affine[2, 2])
         aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
         for z_spacing in z_spacing_list:
@@ -132,7 +132,6 @@ def resample_data():
             break
     finger_df = pd.DataFrame(data_finger, columns=["image_path", "mask_path", "cancer", "raw_data"])
     finger_df.to_excel(data_finger_save_path, index=False)
-    # print(f"{images_save_path} ===== {masks_save_path}")
     pass
 
 
