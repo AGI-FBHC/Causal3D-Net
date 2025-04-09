@@ -100,6 +100,7 @@ def setup_logger(queue, log_path):
 def process_row(index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger):
     image_path = row['image_path']
     mask_path = row['mask_path']
+    name_end = "public" if "public" in image_path else "private"
     image_name = os.path.basename(image_path)
     mask_name = os.path.basename(mask_path)
     cancer = row['cancer']
@@ -108,8 +109,8 @@ def process_row(index, row, z_spacing_list, images_save_dir, masks_save_dir, dat
     aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
 
     for z_spacing in z_spacing_list:
-        new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
-        new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
+        new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
+        new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
         data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
 
         if z_spacing == aligned_spacing:
@@ -129,7 +130,7 @@ def process_row(index, row, z_spacing_list, images_save_dir, masks_save_dir, dat
 
 
 def resample_data():
-    parser = argparse.ArgumentParser(description="Resample image and mask")
+    parser = argparse.ArgumentParser(description="Resample images and masks")
     # parser.add_argument("--excel_path", type=str, default="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx", help="Origin sorted images and masks excel file path.")
     # parser.add_argument("--out_path", type=str, default="/home/huangdn/Causal3D-Net/src/data", help="Output resampled images and masks dir path.")
     parser.add_argument("--excel_path", type=str, required=True, help="Origin sorted images and masks Excel file path.")
