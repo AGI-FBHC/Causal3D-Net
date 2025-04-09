@@ -5,7 +5,7 @@
 ### resample data
 
 ```linux
-python resample_data.py --excel_path /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx --out_path /home/huangdn/Causal3D-Net/src/data
+python ./src/preprocessing/resample_data.py --excel_path /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx --out_path /home/huangdn/Causal3D-Net/src/data
 ```
 
 
