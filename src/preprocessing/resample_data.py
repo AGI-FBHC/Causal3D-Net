@@ -135,7 +135,7 @@ def resample_data():
     # parser.add_argument("--out_path", type=str, default="/home/huangdn/Causal3D-Net/src/data", help="Output resampled images and masks dir path.")
     parser.add_argument("--excel_path", type=str, required=True, help="Origin sorted images and masks Excel file path.")
     parser.add_argument("--out_path", type=str, required=True, help="Output resampled images and masks dir path.")
-    parser.add_argument("--process_num", type=int, default=8, help="Number of concurrent processes to run, be careful not to exceed the number of CPU cores.")
+    parser.add_argument("--process_num", type=int, default=4, help="Number of concurrent processes to run, be careful not to exceed the number of CPU cores.")
     parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")
     parser.add_argument("--log_path", type=str, default="/home/huangdn/Causal3D-Net/src/logging_record", help="Logging record path.")
     args = parser.parse_args()
