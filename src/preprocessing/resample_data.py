@@ -83,18 +83,18 @@ def find_closest_number(lst, num):
     return min(lst, key=lambda x: (abs(x - num), x))
 
 
-def setup_logger(queue, log_path):
-    # 设置主进程的日志记录
-    handler = logging.handlers.QueueHandler(queue)  # 处理日志队列
-    root = logging.getLogger()
-    root.addHandler(handler)
-    root.setLevel(logging.INFO)
-
-    # 设置日志文件输出
-    file_handler = logging.FileHandler(os.path.join(log_path, 'resample_logging.log'), mode='w')
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    root.addHandler(file_handler)
+# def setup_logger(queue, log_path):
+#     # 设置主进程的日志记录
+#     handler = logging.handlers.QueueHandler(queue)  # 处理日志队列
+#     root = logging.getLogger()
+#     root.addHandler(handler)
+#     root.setLevel(logging.INFO)
+#
+#     # 设置日志文件输出
+#     file_handler = logging.FileHandler(os.path.join(log_path, 'resample_logging.log'), mode='w')
+#     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+#     file_handler.setFormatter(formatter)
+#     root.addHandler(file_handler)
 
 
 # def process_row(index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, is_overwrite):
