@@ -97,60 +97,60 @@ def setup_logger(queue, log_path):
     root.addHandler(file_handler)
 
 
-def process_row(index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, is_overwrite):
-    image_path = row['image_path']
-    mask_path = row['mask_path']
-    name_end = "public" if "public" in image_path else "private"
-    image_name = os.path.basename(image_path)
-    mask_name = os.path.basename(mask_path)
-    cancer = row['cancer']
-    image_nii = nib.load(image_path)
-    origin_spacing = abs(image_nii.affine[2, 2])
-    aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
-
-    for z_spacing in z_spacing_list:
-        new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
-        new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
-        data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
-        image_continue = True if os.path.isfile(new_image_path) and not is_overwrite else False
-        mask_continue = True if os.path.isfile(new_mask_path) and not is_overwrite else False
-
-        if z_spacing == aligned_spacing:
-            shutil.copy(image_path, new_image_path) if not image_continue else None
-            logging.info(f"{new_image_path} completed.")
-            shutil.copy(mask_path, new_mask_path) if not mask_continue else None
-            logging.info(f"{new_mask_path} completed.")
-            continue
-
-        resample_z_direction(nii_path=image_path, is_mask=False, output_path=new_image_path, spacing=z_spacing) if not image_continue else None
-        logging.info(f"{new_image_path} completed.")
-        resample_z_direction(nii_path=mask_path, is_mask=True, output_path=new_mask_path, spacing=z_spacing) if not mask_continue else None
-        logging.info(f"{new_mask_path} completed.")
-
-    return data_finger  # 返回修改后的data_finger
+# def process_row(index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, is_overwrite):
+#     image_path = row['image_path']
+#     mask_path = row['mask_path']
+#     name_end = "public" if "public" in image_path else "private"
+#     image_name = os.path.basename(image_path)
+#     mask_name = os.path.basename(mask_path)
+#     cancer = row['cancer']
+#     image_nii = nib.load(image_path)
+#     origin_spacing = abs(image_nii.affine[2, 2])
+#     aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
+#
+#     for z_spacing in z_spacing_list:
+#         new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
+#         new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
+#         data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
+#         image_continue = True if os.path.isfile(new_image_path) and not is_overwrite else False
+#         mask_continue = True if os.path.isfile(new_mask_path) and not is_overwrite else False
+#
+#         if z_spacing == aligned_spacing:
+#             shutil.copy(image_path, new_image_path) if not image_continue else None
+#             logging.info(f"{new_image_path} completed.")
+#             shutil.copy(mask_path, new_mask_path) if not mask_continue else None
+#             logging.info(f"{new_mask_path} completed.")
+#             continue
+#
+#         resample_z_direction(nii_path=image_path, is_mask=False, output_path=new_image_path, spacing=z_spacing) if not image_continue else None
+#         logging.info(f"{new_image_path} completed.")
+#         resample_z_direction(nii_path=mask_path, is_mask=True, output_path=new_mask_path, spacing=z_spacing) if not mask_continue else None
+#         logging.info(f"{new_mask_path} completed.")
+#
+#     return data_finger  # 返回修改后的data_finger
 
 
 
 def resample_data():
     parser = argparse.ArgumentParser(description="Resample images and masks")
-    # parser.add_argument("--excel_path", type=str, default="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx", help="Origin sorted images and masks excel file path.")
+    # parser.add_argument("--excel_path", type=str, default="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx", help="Origin sorted images and masks Excel file path.")
     # parser.add_argument("--out_path", type=str, default="/home/huangdn/Causal3D-Net/src/data", help="Output resampled images and masks dir path.")
     parser.add_argument("--excel_path", type=str, required=True, help="Origin sorted images and masks Excel file path.")
     parser.add_argument("--out_path", type=str, required=True, help="Output resampled images and masks dir path.")
-    parser.add_argument("--process_num", type=int, default=2, help="Number of concurrent processes to run, be careful not to exceed the number of CPU cores.")
+    # parser.add_argument("--process_num", type=int, default=2, help="Number of concurrent processes to run, be careful not to exceed the number of CPU cores.")
     parser.add_argument("--overwrite", type=bool, default=False, help="Overwrite existing resampled images and masks.")
     parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")
     parser.add_argument("--log_path", type=str, default="/home/huangdn/Causal3D-Net/src/logging_record", help="Logging record path.")
     args = parser.parse_args()
 
-    # logging.basicConfig(
-    #     filename=os.path.join(args.log_path, 'resample_logging.log'),  # 设置日志文件名
-    #     level=logging.INFO,  # 设置日志级别为 INFO（会记录 INFO 及更高级别的日志）
-    #     format='%(asctime)s - %(levelname)s - %(message)s',  # 日志格式
-    #     filemode='w'
-    # )
-    queue = Queue()
-    setup_logger(queue, args.log_path)
+    logging.basicConfig(
+        filename=os.path.join(args.log_path, 'resample_logging.log'),  # 设置日志文件名
+        level=logging.INFO,  # 设置日志级别为 INFO（会记录 INFO 及更高级别的日志）
+        format='%(asctime)s - %(levelname)s - %(message)s',  # 日志格式
+        filemode='w'
+    )
+    # queue = Queue()
+    # setup_logger(queue, args.log_path)
 
     dataset_excel = pd.read_excel(args.excel_path)
     images_save_dir = os.path.join(args.out_path, "images")
@@ -162,48 +162,50 @@ def resample_data():
     z_spacing_list = get_z_spacing_list(args.resample_num)
     data_finger = list()
 
-    # 使用ProcessPoolExecutor来并行处理数据
-    with ProcessPoolExecutor(max_workers=args.process_num) as executor:
-        futures = []
-        for index, row in dataset_excel.iterrows():
-            futures.append(executor.submit(process_row, index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, is_overwrite))
+    # # 使用ProcessPoolExecutor来并行处理数据
+    # with ProcessPoolExecutor(max_workers=args.process_num) as executor:
+    #     futures = []
+    #     for index, row in dataset_excel.iterrows():
+    #         futures.append(executor.submit(process_row, index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, is_overwrite))
+    #
+    #     # 等待所有任务完成
+    #     for future in as_completed(futures):
+    #         data_finger.extend(future.result())
 
-        # 等待所有任务完成
-        for future in as_completed(futures):
-            data_finger.extend(future.result())
-
-    # for index, row in dataset_excel.iterrows():
-    #     image_path = row['image_path']
-    #     mask_path = row['mask_path']
-    #     image_name = os.path.basename(image_path)
-    #     mask_name = os.path.basename(mask_path)
-    #     cancer = row['cancer']
-    #     image_nii = nib.load(image_path)
-    #     origin_spacing = abs(image_nii.affine[2, 2])
-    #     aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
-    #     for z_spacing in z_spacing_list:
-    #         new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
-    #         new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
-    #         data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
-    #         if z_spacing == aligned_spacing:
-    #             shutil.copy(image_path, new_image_path)
-    #             logging.info(f"{new_image_path} completed.")
-    #             shutil.copy(mask_path, new_mask_path)
-    #             logging.info(f"{new_mask_path} completed.")
-    #             continue
-    #         resample_z_direction(nii_path=image_path, is_mask=False, output_path=new_image_path, spacing=z_spacing)
-    #         logging.info(f"{new_image_path} completed.")
-    #         resample_z_direction(nii_path=mask_path, is_mask=True, output_path=new_mask_path, spacing=z_spacing)
-    #         logging.info(f"{new_mask_path} completed.")
-    #         pass
+    for index, row in dataset_excel.iterrows():
+        image_path = row['image_path']
+        mask_path = row['mask_path']
+        image_name = os.path.basename(image_path)
+        mask_name = os.path.basename(mask_path)
+        cancer = row['cancer']
+        image_nii = nib.load(image_path)
+        origin_spacing = abs(image_nii.affine[2, 2])
+        aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
+        for z_spacing in z_spacing_list:
+            new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
+            new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
+            data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
+            image_continue = True if os.path.isfile(new_image_path) and not is_overwrite else False
+            mask_continue = True if os.path.isfile(new_mask_path) and not is_overwrite else False
+            if z_spacing == aligned_spacing:
+                shutil.copy(image_path, new_image_path) if not image_continue else None
+                logging.info(f"{new_image_path} completed.")
+                shutil.copy(mask_path, new_mask_path) if not mask_continue else None
+                logging.info(f"{new_mask_path} completed.")
+                continue
+            resample_z_direction(nii_path=image_path, is_mask=False, output_path=new_image_path, spacing=z_spacing) if not image_continue else None
+            logging.info(f"{new_image_path} completed.")
+            resample_z_direction(nii_path=mask_path, is_mask=True, output_path=new_mask_path, spacing=z_spacing) if not mask_continue else None
+            logging.info(f"{new_mask_path} completed.")
+            pass
     #     if index == 1:
     #         break
     finger_df = pd.DataFrame(data_finger, columns=["image_path", "mask_path", "cancer", "raw_data"])
     finger_df.to_excel(data_finger_save_path, index=False)
 
-    listener = logging.handlers.QueueListener(queue, logging.getLogger())
-    listener.start()
-    listener.stop()  # 结束后停止日志监听器
+    # listener = logging.handlers.QueueListener(queue, logging.getLogger())
+    # listener.start()
+    # listener.stop()  # 结束后停止日志监听器
     pass
 
 
