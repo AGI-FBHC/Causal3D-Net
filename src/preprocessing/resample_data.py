@@ -175,6 +175,7 @@ def resample_data():
     for index, row in dataset_excel.iterrows():
         image_path = row['image_path']
         mask_path = row['mask_path']
+        name_end = "public" if "public" in image_path else "private"
         image_name = os.path.basename(image_path)
         mask_name = os.path.basename(mask_path)
         cancer = row['cancer']
@@ -182,8 +183,8 @@ def resample_data():
         origin_spacing = abs(image_nii.affine[2, 2])
         aligned_spacing = find_closest_number(z_spacing_list, origin_spacing)
         for z_spacing in z_spacing_list:
-            new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
-            new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}.nii.gz"))
+            new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
+            new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
             data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
             image_continue = True if os.path.isfile(new_image_path) and not is_overwrite else False
             mask_continue = True if os.path.isfile(new_mask_path) and not is_overwrite else False
