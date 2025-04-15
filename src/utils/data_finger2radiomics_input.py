@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+# @Time    : 2025/4/15 10:40
+# @Author  : D.N. Huang
+# @Email   : CarlCypress@yeah.net
+# @FileName: data_finger2radiomics_input.py
+# @Project : Causal3D-Net
+import os
+import pandas as pd
+
+
+def change_excel_title():
+    data_finger_path = "/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx"
+    radiomics_read_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_read.xlsx"
+    df = pd.read_excel(data_finger_path)
+    df = df[["image_path", "mask_path"]]
+    df = df.rename(columns={"image_path": "Image",
+                            "mask_path": "Mask"})
+    df.to_excel(radiomics_read_path, index=False)
+    pass
+
+
+if __name__ == '__main__':
+    change_excel_title()
