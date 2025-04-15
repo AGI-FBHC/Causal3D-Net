@@ -40,14 +40,15 @@ def extract_radiomics_features():
     logger.info('Patients: %d', len(flists.columns))
 
     if os.path.isfile(args.params):
+        logger.info('Loading Params file')
         extractor = featureextractor.RadiomicsFeatureExtractor(args.params)
     else:  # Parameter file not found, use hardcoded settings instead
+        logger.info('Loading Params base')
         settings = {}
         settings['binWidth'] = 25
         settings['resampledPixelSpacing'] = None
         settings['interpolator'] = sitk.sitkBSpline
         settings['enableCExtensions'] = True
-
         extractor = featureextractor.RadiomicsFeatureExtractor(**settings)
     logger.info('Enabled input images types: %s', extractor.enabledImagetypes)
     logger.info('Enabled features: %s', extractor.enabledFeatures)
@@ -63,6 +64,17 @@ def extract_radiomics_features():
         imageFilepath = flists[entry]['Image']
         maskFilepath = flists[entry]['Mask']
         label = flists[entry].get('Label', None)
+
+        if str(label).isdigit():
+            label = int(label)
+        else:
+            label = None
+
+        if (imageFilepath is not None) and (maskFilepath is not None):
+            featureVector = flists[entry]  # This is a pandas Series
+            featureVector['Image'] = os.path.basename(imageFilepath)
+            featureVector['Mask'] = os.path.basename(maskFilepath)
+
         try:
             # PyRadiomics returns the result as an ordered dictionary, which can be easily converted to a pandas Series
             # The keys in the dictionary will be used as the index (labels for the rows), with the values of the features
