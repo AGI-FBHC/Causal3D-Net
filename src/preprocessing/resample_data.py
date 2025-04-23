@@ -131,42 +131,40 @@ def find_closest_number(lst, num):
 
 
 
-def resample_data():
-    parser = argparse.ArgumentParser(description="Resample images and masks")
-    # parser.add_argument("--excel_path", type=str, default="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx", help="Origin sorted images and masks Excel file path.")
-    # parser.add_argument("--out_path", type=str, default="/home/huangdn/Causal3D-Net/src/data", help="Output resampled images and masks dir path.")
-    parser.add_argument("--excel_path", type=str, required=True, help="Origin sorted images and masks Excel file path.")
-    parser.add_argument("--out_path", type=str, required=True, help="Output resampled images and masks dir path.")
-    # parser.add_argument("--process_num", type=int, default=2, help="Number of concurrent processes to run, be careful not to exceed the number of CPU cores.")
-    parser.add_argument("--overwrite", type=bool, default=False, help="Overwrite existing resampled images and masks.")
-    parser.add_argument("--resample_num", type=int, choices=[1, 3, 5], default=5, help="Total after resampling. Choose from 1, 3, or 5.")
-    parser.add_argument("--log_path", type=str, default="/home/huangdn/Causal3D-Net/src/logging_record", help="Logging record path.")
-    args = parser.parse_args()
-
+def resample_data(excel_path, out_path, overwrite, resample_num, log_path):
+    """
+    Resample the image and mask pairs specified in the `excel_path` file, using the resampling mode defined in
+    `resample_num`. The resampling results and data fingerprints will be generated in the `output` directory.
+    :param excel_path: Path list of image and mask pairs to be resampled.
+    :param out_path: Root directory for resampling results.
+    :param overwrite: Whether to resample already resampled data.
+    :param resample_num: Number of samples.
+    :param log_path: Path to store the log file.
+    :return: None
+    """
     logging.basicConfig(
-        filename=os.path.join(args.log_path, 'resample_logging.log'),  # 设置日志文件名
+        filename=os.path.join(log_path, 'resample_logging.log'),  # 设置日志文件名
         level=logging.INFO,  # 设置日志级别为 INFO（会记录 INFO 及更高级别的日志）
         format='%(asctime)s - %(levelname)s - %(message)s',  # 日志格式
         filemode='w'
     )
     # queue = Queue()
-    # setup_logger(queue, args.log_path)
+    # setup_logger(queue, log_path)
 
-    dataset_excel = pd.read_excel(args.excel_path)
-    images_save_dir = os.path.join(args.out_path, "images")
-    masks_save_dir = os.path.join(args.out_path, "masks")
-    data_finger_save_path = os.path.join(args.out_path, "data_finger.xlsx")
-    is_overwrite = args.overwrite
+    dataset_excel = pd.read_excel(excel_path)
+    images_save_dir = os.path.join(out_path, "images")
+    masks_save_dir = os.path.join(out_path, "masks")
+    data_finger_save_path = os.path.join(out_path, "data_finger.xlsx")
     os.makedirs(images_save_dir, exist_ok=True)
     os.makedirs(masks_save_dir, exist_ok=True)
-    z_spacing_list = get_z_spacing_list(args.resample_num)
+    z_spacing_list = get_z_spacing_list(resample_num)
     data_finger = list()
 
     # # 使用ProcessPoolExecutor来并行处理数据
-    # with ProcessPoolExecutor(max_workers=args.process_num) as executor:
+    # with ProcessPoolExecutor(max_workers=process_num) as executor:
     #     futures = []
     #     for index, row in dataset_excel.iterrows():
-    #         futures.append(executor.submit(process_row, index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, is_overwrite))
+    #         futures.append(executor.submit(process_row, index, row, z_spacing_list, images_save_dir, masks_save_dir, data_finger, overwrite))
     #
     #     # 等待所有任务完成
     #     for future in as_completed(futures):
@@ -186,8 +184,8 @@ def resample_data():
             new_image_path = os.path.join(images_save_dir, image_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
             new_mask_path = os.path.join(masks_save_dir, mask_name.replace(".nii.gz", f"_{z_spacing:05d}_{name_end}.nii.gz"))
             data_finger.append([new_image_path, new_mask_path, cancer, z_spacing == aligned_spacing])
-            image_continue = True if os.path.isfile(new_image_path) and not is_overwrite else False
-            mask_continue = True if os.path.isfile(new_mask_path) and not is_overwrite else False
+            image_continue = True if os.path.isfile(new_image_path) and not overwrite else False
+            mask_continue = True if os.path.isfile(new_mask_path) and not overwrite else False
             if z_spacing == aligned_spacing:
                 shutil.copy(image_path, new_image_path) if not image_continue else None
                 logging.info(f"{new_image_path} completed.")
@@ -211,5 +209,52 @@ def resample_data():
 
 
 if __name__ == "__main__":
-    resample_data()
+    parser = argparse.ArgumentParser(description="Resample images and masks")
+    parser.add_argument(
+        "--input",
+        type=str,
+        default="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx",
+        # required=True,
+        help="Origin sorted images and masks Excel file path."
+    )
+    parser.add_argument(
+        "--outdir",
+        type=str,
+        default="/home/huangdn/Causal3D-Net/src/data",
+        # required=True,
+        help="Output resampled images and masks dir path."
+    )
+    # parser.add_argument(
+    #     "--process_num",
+    #     type=int,
+    #     default=2,
+    #     help="Number of concurrent processes to run, be careful not to exceed the number of CPU cores."
+    # )
+    parser.add_argument(
+        "--overwrite",
+        type=bool,
+        default=False,
+        help="Overwrite existing resampled images and masks."
+    )
+    parser.add_argument(
+        "--resample_num",
+        type=int,
+        choices=[1, 3, 5],
+        default=5,
+        help="Total after resampling. Choose from 1, 3, or 5."
+    )
+    parser.add_argument(
+        "--log_path",
+        type=str,
+        default="/home/huangdn/Causal3D-Net/src/logging_record",
+        help="Logging record path."
+    )
+    args = parser.parse_args()
+    resample_data(
+        args.input,
+        args.outdir,
+        args.overwrite,
+        args.resample_num,
+        args.log_path
+    )
 
