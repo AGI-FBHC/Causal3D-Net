@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import nibabel as nib
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 def print_mask_type(file_path):
@@ -50,17 +50,24 @@ def mask_volume_box(file_path):
 
 def through_files():
     excel_path = "/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx"
-    # logging.basicConfig(
-    #     filename="/home/huangdn/Causal3D-Net/src/logging_record/mask_type.log",
-    #     level=logging.INFO,
-    #     format="%(asctime)s - %(message)s",
-    #     filemode='w'
-    # )
+    ############################################### for mask type check ###############################################
+    logging.basicConfig(
+        filename="/home/huangdn/Causal3D-Net/src/logging_record/mask_type.log",
+        level=logging.INFO,
+        format="%(asctime)s - %(message)s",
+        filemode='w'
+    )
     df = pd.read_excel(excel_path)
-    for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-         mask_path = row["mask_path"]
-         print_mask_type(mask_path)
-    pass
+    mask_paths = df["mask_path"].tolist()
+    # 使用 ProcessPoolExecutor 加速处理
+    with ProcessPoolExecutor(max_workers=32) as executor:
+        # 提交任务
+        future_to_mask = {executor.submit(print_mask_type, mask_path): mask_path for mask_path in mask_paths}
+
+        # tqdm 用于显示进度条
+        for future in tqdm(as_completed(future_to_mask), total=len(mask_paths)):
+            future.result()  # 获取任务结果，如果有异常会在这里抛出
+    ############################################### for mask type check ###############################################
     # results = []
     # with ProcessPoolExecutor(max_workers=4) as executor:  # 设置最大进程数为4
     #     results = list(tqdm(executor.map(mask_volume_box, df["mask_path"]), total=df.shape[0]))
