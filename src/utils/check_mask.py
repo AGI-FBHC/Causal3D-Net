@@ -50,44 +50,47 @@ def mask_volume_box(file_path):
 
 def through_files():
     excel_path = "/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx"
-    ############################################### for mask type check ###############################################
-    logging.basicConfig(
-        filename="/home/huangdn/Causal3D-Net/src/logging_record/mask_type.log",
-        level=logging.INFO,
-        format="%(asctime)s - %(message)s",
-        filemode='w'
-    )
+    # ############################################### for mask type check ###############################################
+    # logging.basicConfig(
+    #     filename="/home/huangdn/Causal3D-Net/src/logging_record/mask_type.log",
+    #     level=logging.INFO,
+    #     format="%(asctime)s - %(message)s",
+    #     filemode='w'
+    # )
+    # df = pd.read_excel(excel_path)
+    # mask_paths = df["mask_path"].tolist()
+    # # 使用 ProcessPoolExecutor 加速处理
+    # with ProcessPoolExecutor(max_workers=32) as executor:
+    #     # 提交任务
+    #     future_to_mask = {executor.submit(print_mask_type, mask_path): mask_path for mask_path in mask_paths}
+    #
+    #     # tqdm 用于显示进度条
+    #     for future in tqdm(as_completed(future_to_mask), total=len(mask_paths)):
+    #         future.result()  # 获取任务结果，如果有异常会在这里抛出
+    # ############################################### for mask type check ###############################################
+    ############################################## for mask volume check ##############################################
     df = pd.read_excel(excel_path)
-    mask_paths = df["mask_path"].tolist()
-    # 使用 ProcessPoolExecutor 加速处理
-    with ProcessPoolExecutor(max_workers=32) as executor:
-        # 提交任务
-        future_to_mask = {executor.submit(print_mask_type, mask_path): mask_path for mask_path in mask_paths}
-
-        # tqdm 用于显示进度条
-        for future in tqdm(as_completed(future_to_mask), total=len(mask_paths)):
-            future.result()  # 获取任务结果，如果有异常会在这里抛出
-    ############################################### for mask type check ###############################################
-    # results = []
-    # with ProcessPoolExecutor(max_workers=4) as executor:  # 设置最大进程数为4
-    #     results = list(tqdm(executor.map(mask_volume_box, df["mask_path"]), total=df.shape[0]))
-    # # for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-    # #     mask_path = row["mask_path"]
-    # #     # 获取每个mask的相关数据
-    # #     result = mask_volume_box(mask_path)
-    # #     # 在结果前面加上文件名
-    # #     result_with_filename = [mask_path] + result
-    # #     # 将结果添加到results列表中
-    # #     results.append(result_with_filename)
-    # # 将所有结果转化为DataFrame
-    # results_df = pd.DataFrame(results, columns=[
-    #     "file_name", "width", "height", "depth", "box_width", "box_height", "box_depth",
-    #     "mask_count", "min_x", "min_y", "min_z", "max_x", "max_y", "max_z"
-    # ])
-    # # 将结果保存为Excel文件
-    # output_path = "/home/huangdn/Causal3D-Net/src/logging_record/mask_volume_info.xlsx"
-    # results_df.to_excel(output_path, index=False)
-    # print(f"Results saved to {output_path}")
+    results = []
+    with ProcessPoolExecutor(max_workers=16) as executor:  # 设置最大进程数为4
+        results = list(tqdm(executor.map(mask_volume_box, df["mask_path"]), total=df.shape[0]))
+    # for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+    #     mask_path = row["mask_path"]
+    #     # 获取每个mask的相关数据
+    #     result = mask_volume_box(mask_path)
+    #     # 在结果前面加上文件名
+    #     result_with_filename = [mask_path] + result
+    #     # 将结果添加到results列表中
+    #     results.append(result_with_filename)
+    # 将所有结果转化为DataFrame
+    results_df = pd.DataFrame(results, columns=[
+        "file_name", "width", "height", "depth", "box_width", "box_height", "box_depth",
+        "mask_count", "min_x", "min_y", "min_z", "max_x", "max_y", "max_z"
+    ])
+    # 将结果保存为Excel文件
+    output_path = "/home/huangdn/Causal3D-Net/src/logging_record/mask_volume_info.xlsx"
+    results_df.to_excel(output_path, index=False)
+    print(f"Results saved to {output_path}")
+    ############################################## for mask volume check ##############################################
 
 
 if __name__ == '__main__':
