@@ -17,13 +17,15 @@ def training(excel_path, output_dir, logging_path):
     batch_size = 1
     learning_rate = 0.001
     num_epochs = 500
-    transform = transforms.Compose([])
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
     train_dataset = PCDataset(excel_path=excel_path, transform=transform)
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=1,
         pin_memory=True,
     )
     for X, y in tqdm(train_loader):

@@ -40,9 +40,8 @@ class PCDataset(Dataset):
         mask_array = sitk.GetArrayFromImage(mask).astype('float32')
 
         # 找到mask中值为1的地方
-        coords = (mask_array == 1).nonzero()  # 返回所有1的坐标，形状 (N, 3)，分别是 (z, y, x)
-        if coords.size == 0:
-            # 如果mask里没有1（极少见情况），直接返回原图或者raise
+        coords = np.argwhere(mask_array == 1)
+        if coords.shape[0] == 0:
             raise ValueError(f"No positive region found in mask for index {idx}.")
         # 分别找z、y、x方向上的最小和最大索引
         z_min, y_min, x_min = coords.min(0)
@@ -54,6 +53,7 @@ class PCDataset(Dataset):
             X = cropped_mask * cropped_image
         else:
             X = cropped_image
-        if self.transform:
-            X = self.transform(X)
+        # if self.transform:
+        #     X = self.transform(X)
+        y = cropped_mask
         return X, y
