@@ -163,7 +163,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--params",
         type=str,
-        default="/home/huangdn/Causal3D-Net/src/dataset/Params.yaml",
+        default="/home/huangdn/Causal3D-Net/src/config/Params.yaml",
         help="Params file path."
     )
     parser.add_argument(
