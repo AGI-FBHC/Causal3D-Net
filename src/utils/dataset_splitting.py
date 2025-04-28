@@ -18,6 +18,9 @@ def split(excel_path, output_dir):
         random_state=42,  # 保证每次划分一样
         shuffle=True
     )
+    train_data = train_data.sort_values(by="image_path", ascending=True)
+    test_data = test_data.sort_values(by="image_path", ascending=True)
+
     train_save_path = os.path.join(output_dir, "train_dataset.xlsx")
     test_save_path = os.path.join(output_dir, "test_dataset.xlsx")
 
@@ -32,7 +35,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dataset splitting")
     parser.add_argument(
         "--input", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/data/roi_data_finger.xlsx",
         help="Origin sorted images and masks Excel file path."
     )
     parser.add_argument(

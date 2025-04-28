@@ -7,6 +7,7 @@
 import torch
 import logging
 import os, argparse
+import nibabel as nib
 from torchvision import transforms
 from tqdm import tqdm
 from dataset.PC_dataset import *
@@ -24,12 +25,27 @@ def training(excel_path, output_dir, logging_path):
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=1,
         pin_memory=True,
     )
-    for X, y in tqdm(train_loader):
-        print(X.size(), y.size())
+    records = []
+    for _, X, y in tqdm(train_loader):
+        _ = _[0]
+        X = X[0]
+        X_np = X.cpu().numpy()
+        shape = X_np.shape
+        record = {
+            'image_path': _,
+            'x': shape[1],
+            'y': shape[2],
+            'z': shape[0],
+        }
+        records.append(record)
+        # 保存到Excel
+    df = pd.DataFrame(records)
+    df.to_excel('/home/huangdn/Causal3D-Net/src/logging_record/output.xlsx', index=False)
+    print('Saved to output.xlsx')
     pass
 
 
@@ -37,7 +53,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Causal 3D Net model training")
     parser.add_argument(
         "--input", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/train_dataset.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/data/roi_data_finger.xlsx",
         # required=True,
         help="Excel path for model training image set."
     )

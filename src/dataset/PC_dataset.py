@@ -34,26 +34,13 @@ class PCDataset(Dataset):
         mask_path = row['mask_path']
         label = row['cancer']
 
-        image = sitk.ReadImage(image_path)
-        image_array = sitk.GetArrayFromImage(image).astype('float32')
-        mask = sitk.ReadImage(mask_path)
-        mask_array = sitk.GetArrayFromImage(mask).astype('float32')
-
-        # 找到mask中值为1的地方
-        coords = np.argwhere(mask_array == 1)
-        if coords.shape[0] == 0:
-            raise ValueError(f"No positive region found in mask for index {idx}.")
-        # 分别找z、y、x方向上的最小和最大索引
-        z_min, y_min, x_min = coords.min(0)
-        z_max, y_max, x_max = coords.max(0)
-        # 裁剪image和mask
-        cropped_image = image_array[z_min:z_max + 1, y_min:y_max + 1, x_min:x_max + 1]
-        cropped_mask = mask_array[z_min:z_max + 1, y_min:y_max + 1, x_min:x_max + 1]
+        image_array = np.load(image_path)
+        mask_array = np.load(mask_path)
         if self.use_mask:
-            X = cropped_mask * cropped_image
+            X = image_array *  mask_array
         else:
-            X = cropped_image
+            X = image_array
         # if self.transform:
         #     X = self.transform(X)
-        y = cropped_mask
-        return X, y
+        y = label
+        return image_path, X, y
