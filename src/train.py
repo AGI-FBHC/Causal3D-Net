@@ -15,10 +15,11 @@ from torch.utils.data import DataLoader
 import torchio as tio
 from models.ResNet import *
 import torch.cuda as cuda
+from utils.window import *
 
 
 def training(excel_path, output_dir, logging_path):
-    batch_size = 1
+    batch_size = 4
     learning_rate = 0.001
     num_epochs = 500
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
@@ -26,11 +27,11 @@ def training(excel_path, output_dir, logging_path):
     model = generate_model(10, n_input_channels=1, n_classes=2).to(device)
     model.eval()  # 推理模式
     transform = tio.Compose([
+        Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),  # 归一化到 0-1，可选
         tio.Resize((128, 256, 256)),  # 关键这一步！
-        tio.ToTensor(),  # 转成Tensor
     ])
-    train_dataset = PCDataset(excel_path=excel_path)
+    train_dataset = PCDataset(excel_path=excel_path, transform=transform)
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -39,6 +40,9 @@ def training(excel_path, output_dir, logging_path):
         pin_memory=True,
     )
     for _, X, y in tqdm(train_loader):
+        print(X.shape)
+        print("=" * 10)
+        X = X.to(device)
         y_hat = model(X)
         print(y_hat.shape)
         break

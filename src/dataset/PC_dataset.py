@@ -44,10 +44,11 @@ class PCDataset(Dataset):
         X = np.expand_dims(X, axis=0)
         if self.transform:
             subject = tio.Subject(  # 包装成Subject
-                image=tio.ScalarImage(tensor=torch.from_numpy(X))
+                image=tio.ScalarImage(tensor=X)
             )
             X = self.transform(subject)['image'].data  # 取回处理后的tensor
         else:
             X = torch.from_numpy(X)
         y = label
+        print(X.shape)
         return image_path, X, y
