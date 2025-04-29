@@ -10,10 +10,11 @@ import torch
 import numpy as np
 import SimpleITK as sitk
 from torch.utils.data import Dataset
+import torchio as tio
 
 
 class PCDataset(Dataset):
-    def __init__(self, excel_path, transform, is_expand=False, use_mask=False):
+    def __init__(self, excel_path, transform=None, is_expand=False, use_mask=False):
         super(PCDataset, self).__init__()
         self.df = pd.read_excel(excel_path)
         self.transform = transform
@@ -40,7 +41,13 @@ class PCDataset(Dataset):
             X = image_array *  mask_array
         else:
             X = image_array
-        # if self.transform:
-        #     X = self.transform(X)
+        X = np.expand_dims(X, axis=0)
+        if self.transform:
+            subject = tio.Subject(  # 包装成Subject
+                image=tio.ScalarImage(tensor=torch.from_numpy(X))
+            )
+            X = self.transform(subject)['image'].data  # 取回处理后的tensor
+        else:
+            X = torch.from_numpy(X)
         y = label
         return image_path, X, y
