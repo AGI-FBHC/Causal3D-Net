@@ -11,6 +11,8 @@ import numpy as np
 import SimpleITK as sitk
 from torch.utils.data import Dataset
 import torchio as tio
+from src.utils.visual3D import show_volume_plotly, show_middle_slice
+
 
 
 class PCDataset(Dataset):
@@ -41,6 +43,7 @@ class PCDataset(Dataset):
             X = image_array *  mask_array
         else:
             X = image_array
+        # show_middle_slice(image_array, save_name="/home/huangdn/Causal3D-Net/src/logging_record/origin")
         X = np.expand_dims(X, axis=0)
         if self.transform:
             subject = tio.Subject(  # 包装成Subject
@@ -49,6 +52,6 @@ class PCDataset(Dataset):
             X = self.transform(subject)['image'].data  # 取回处理后的tensor
         else:
             X = torch.from_numpy(X)
+        # show_middle_slice(X.squeeze().cpu().numpy(), save_name="/home/huangdn/Causal3D-Net/src/logging_record/resized")
         y = label
-        print(X.shape)
         return image_path, X, y
