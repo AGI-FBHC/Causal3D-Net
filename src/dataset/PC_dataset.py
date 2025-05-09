@@ -53,5 +53,7 @@ class PCDataset(Dataset):
         else:
             X = torch.from_numpy(X)
         # show_middle_slice(X.squeeze().cpu().numpy(), save_name="/home/huangdn/Causal3D-Net/src/logging_record/resized")
+        # if self.transform:
+        #     X = self.transform(X)
         y = label
         return image_path, X, y

@@ -161,14 +161,13 @@ def training(train_excel, test_excel, output_dir, logging_dir):
     # # 打印推理期间的峰值显存使用
     # used_mem_MB = cuda.max_memory_allocated(device) / 1024 / 1024
     # print(f"[推理] 显存峰值使用: {used_mem_MB:.2f} MB")
-    pass
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Causal 3D Net model training")
     parser.add_argument(
         "--train", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/train_dataset.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/data/roi_data_finger.xlsx",
         # required=True,
         help="Excel path for model training image set."
     )
