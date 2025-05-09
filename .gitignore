@@ -190,5 +190,4 @@ Icon
 *.nii
 *.dcm
 
-# tmp filter
-*.xlsx
+
