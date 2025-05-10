@@ -9,7 +9,7 @@ import pandas as pd
 
 
 def change_excel_title():
-    data_finger_path = "/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx"
+    data_finger_path = "/home/huangdn/Causal3D-Net/src/dataset/data_finger.xlsx"
     radiomics_read_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_read.xlsx"
     df = pd.read_excel(data_finger_path)
     df = df[["image_path", "mask_path"]]

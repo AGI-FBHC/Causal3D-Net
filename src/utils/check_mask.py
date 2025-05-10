@@ -49,7 +49,7 @@ def mask_volume_box(file_path):
 
 
 def through_files():
-    excel_path = "/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx"
+    excel_path = "/home/huangdn/Causal3D-Net/src/dataset/data_finger.xlsx"
     # ############################################### for mask type check ###############################################
     # logging.basicConfig(
     #     filename="/home/huangdn/Causal3D-Net/src/logging_record/mask_type.log",

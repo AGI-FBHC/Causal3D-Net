@@ -66,13 +66,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Crop images and masks")
     parser.add_argument(
         "--input", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/data_finger.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/data_finger.xlsx",
         # required=True,
         help="Path to excel file containing images and masks.",
     )
     parser.add_argument(
         "--outdir", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data",
+        default="/home/huangdn/Causal3D-Net/src/dataset",
         # required=True,
         help="Output roi data finger save path."
     )

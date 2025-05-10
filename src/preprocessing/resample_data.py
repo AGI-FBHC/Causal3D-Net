@@ -218,7 +218,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--outdir", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data",
+        default="/home/huangdn/Causal3D-Net/src/dataset",
         # required=True,
         help="Output resampled images and masks dir path."
     )

@@ -156,7 +156,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--output",
         type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/radiomics_features.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.xlsx",
         # required=True,
         help="Output Excel file path."
     )

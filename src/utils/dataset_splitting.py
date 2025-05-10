@@ -35,12 +35,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dataset splitting")
     parser.add_argument(
         "--input", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/roi_data_finger.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/roi_data_finger.xlsx",
         help="Origin sorted images and masks Excel file path."
     )
     parser.add_argument(
         "--outdir", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/",
+        default="/home/huangdn/Causal3D-Net/src/dataset/",
         help="Output folder path."
     )
     args = parser.parse_args()

@@ -5,18 +5,20 @@
 # @FileName: train.py
 # @Project : Causal3D-Net
 import torch
+import torch.nn as nn
 import logging
 import os, argparse
 import nibabel as nib
 from torchvision import transforms
 import torch.optim as optim
 from tqdm import tqdm
-from src.dataset.PC_dataset import *
+from dataset.PC_dataset import *
 from torch.utils.data import DataLoader
 import torchio as tio
-from src.models.ResNet import *
+from models.ResNet import generate_model
+from models.ViT import ViTClassifier
 import torch.cuda as cuda
-from src.utils.window import *
+from utils.window import *
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -43,7 +45,8 @@ def training(train_excel, test_excel, output_dir, logging_dir):
     num_epochs = 100
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
 
-    model = generate_model(10, n_input_channels=1, n_classes=2).to(device)
+    # model = generate_model(10, n_input_channels=1, n_classes=2).to(device)  # 3D ResNet
+    model = ViTClassifier(img_size=(128, 256, 256), num_classes=2).to(device)
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -71,7 +74,8 @@ def training(train_excel, test_excel, output_dir, logging_dir):
         for _, X, y in train_loader:
             X, y = X.to(device, dtype=torch.float), y.to(device, dtype=torch.long)
             optimizer.zero_grad()
-            y_hat = model(X)
+            # y_hat = model(X)  # for 3D-ResNet
+            y_hat, _ = model(X)  # for ViT
             loss = loss_fn(y_hat, y)
             loss.backward()
             optimizer.step()
@@ -91,9 +95,9 @@ def training(train_excel, test_excel, output_dir, logging_dir):
         val_total = 0
 
         with torch.no_grad():
-            for _, X, y in tqdm(test_loader, desc=f"[Val] Epoch {epoch}"):
+            for _, X, y in test_loader:
                 X, y = X.to(device, dtype=torch.float), y.to(device, dtype=torch.long)
-                y_hat = model(X)
+                y_hat, _ = model(X)
                 loss = loss_fn(y_hat, y)
 
                 val_loss += loss.item() * X.size(0)
@@ -141,7 +145,7 @@ def training(train_excel, test_excel, output_dir, logging_dir):
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig(os.path.join(logging_dir, 'training_curve.png'))
+        plt.savefig(os.path.join(logging_dir, f"{current_time}.png"))
         plt.close()
 
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
@@ -167,13 +171,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Causal 3D Net model training")
     parser.add_argument(
         "--train", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/roi_data_finger.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx",
         # required=True,
         help="Excel path for model training image set."
     )
     parser.add_argument(
         "--test", type=str,
-        default="/home/huangdn/Causal3D-Net/src/data/test_dataset.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/test_dataset.xlsx",
         # required=True,
         help="Excel path for model training image set."
     )
