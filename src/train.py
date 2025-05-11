@@ -12,13 +12,13 @@ import nibabel as nib
 from torchvision import transforms
 import torch.optim as optim
 from tqdm import tqdm
-from dataset.PC_dataset import *
+from src.dataset.PC_dataset import *
 from torch.utils.data import DataLoader
 import torchio as tio
-from models.ResNet import generate_model
-from models.ViT import ViTClassifier
+from src.models.ResNet import generate_model
+from src.models.ViT import ViTClassifier
 import torch.cuda as cuda
-from utils.window import *
+from src.utils.window import *
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -97,6 +97,7 @@ def training(train_excel, test_excel, output_dir, logging_dir):
         with torch.no_grad():
             for _, X, y in test_loader:
                 X, y = X.to(device, dtype=torch.float), y.to(device, dtype=torch.long)
+                # y_hat = model(X)  # for 3D-ResNet
                 y_hat, _ = model(X)
                 loss = loss_fn(y_hat, y)
 
@@ -110,7 +111,7 @@ def training(train_excel, test_excel, output_dir, logging_dir):
         val_accs.append(val_acc)
 
         # Logging
-        log_msg = (f"\n📘 Epoch {epoch}: "
+        log_msg = (f"\n📘 Epoch {epoch+1}: "
                    f"Train Loss={avg_train_loss:.4f}, Acc={train_acc:.4f} | "
                    f"Val Loss={avg_val_loss:.4f}, Acc={val_acc:.4f}")
         print(log_msg)
