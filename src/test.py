@@ -4,12 +4,21 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: test.py
 # @Project : Causal3D-Net
+import torch
+import torch.nn as nn
 import pandas as pd
+from src.models.PANDA import ConvBlock3D, MultiTask3DCNN
 
 
-data_finger_path = "/home/huangdn/Causal3D-Net/src/dataset/data_finger.xlsx"
-roi_data_finger_path = "/home/huangdn/Causal3D-Net/src/dataset/roi_data_finger.xlsx"
-df = pd.read_excel(data_finger_path)
-df['image_path'] = df['image_path'].str.replace('.nii.gz', '.npy', regex=False)
-df['mask_path'] = df['mask_path'].str.replace('.nii.gz', '.npy', regex=False)
-df.to_excel(roi_data_finger_path, index=False)
+# 实例化模块
+model = ConvBlock3D(1, 32)
+
+# 生成随机数据
+x = torch.randn(1, 1, 40, 160, 256)
+
+# 推理
+with torch.no_grad():
+    out = model(x)
+
+print(out.shape)
+

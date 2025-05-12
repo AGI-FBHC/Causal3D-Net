@@ -72,6 +72,7 @@ def training(train_excel, test_excel, output_dir, logging_dir):
         train_total = 0
 
         for _, X, y in train_loader:
+            return None
             X, y = X.to(device, dtype=torch.float), y.to(device, dtype=torch.long)
             optimizer.zero_grad()
             # y_hat = model(X)  # for 3D-ResNet
