@@ -9,14 +9,64 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class ConvBlock3D(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(ConvBlock3D, self).__init__()
+class DownConv(nn.Module):
+    def __init__(self, in_channels, out_channels, conv_type="shape"):
+        """
+        :param conv_type: `shape` (HW downsampling), `depth` (DHW downsampling), `fixed` (no downsampling).
+        """
+        super().__init__()
+        # 决定 stride
+        if conv_type == "shape":
+            stride = (1, 2, 2)
+        elif conv_type == "depth":
+            stride = 2  # 等价于 (2, 2, 2)
+        elif conv_type == "fixed":
+            stride = 1
+        else:
+            raise ValueError(f"Invalid conv_type: {conv_type}.")
+
         self.conv = nn.Sequential(
-            nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.Conv3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+            nn.Conv3d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+class UpConv(nn.Module):
+    def __init__(self, in_channels, out_channels, conv_type="fixed"):
+        """
+        :param conv_type:
+            - 'fixed': no upsampling
+            - 'depth': full DHW upsampling
+            - 'shape': only H and W upsampling
+        """
+        super().__init__()
+        if conv_type == "shape":
+            kernel_size = (3, 4, 4)
+            stride = (1, 2, 2)
+        elif conv_type == "depth":
+            kernel_size = 4  # 等价于 (4, 4, 4)
+            stride = 2
+        elif conv_type == "fixed":
+            kernel_size = 3
+            stride = 1
+        else:
+            raise ValueError(f"Invalid conv_type: {conv_type}")
+
+        self.conv = nn.Sequential(
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.ConvTranspose3d(
+                in_channels, out_channels,
+                kernel_size=kernel_size, stride=stride, padding=1
+            ),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -25,9 +75,59 @@ class ConvBlock3D(nn.Module):
         return self.conv(x)
 
 
+class UpFixedConv(nn.Module):
+    def __init__(self, in_channels, out_channels, conv_type="fixed"):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+class UpDepthConv(nn.Module):
+    def __init__(self, in_channels, out_channels, conv_type="depth"):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+class UpShapeConv(nn.Module):
+    def __init__(self, in_channels, out_channels, conv_type="shape"):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=(3, 4, 4), stride=(1, 2, 2), padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+
+
 class MultiTask3DCNN(nn.Module):
     def __init__(self):
-        super(MultiTask3DCNN, self).__init__()
+        super().__init__()
 
         # Encoder path
         self.enc1 = ConvBlock3D(1, 32)     # 输入为1通道 (160x256x40)
