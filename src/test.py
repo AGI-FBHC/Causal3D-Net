@@ -5,16 +5,17 @@
 # @FileName: test.py
 # @Project : Causal3D-Net
 import torch
+import pydoc
 import torch.nn as nn
 import pandas as pd
-from src.models.PANDA import DownConv, MultiTask3DCNN
+from src.models.PANDA import DownConv, UpConv, MultiTask3DCNN
 
 
 def inference():
-    in_channels = 320
-    out_channels = 320
-    in_shape = (5, 5, 8)
-    model = DownConv(in_channels, out_channels, conv_type="fixed")
+    in_channels = 1
+    out_channels = 2
+    in_shape = (40, 160, 256)
+    model = MultiTask3DCNN(mask_num=out_channels)
 
     # 生成随机数据
     x = torch.randn(1, in_channels, *in_shape)
@@ -27,16 +28,13 @@ def inference():
     print(f"output.shape={out.shape}")
 
 
+def test():
+    s1 = "torch.nn.modules.conv.Conv2d"
+    s2 = pydoc.locate(s1)
+    print(s1)
+    print("=" * 20)
+    print(s2)
+
+
 if __name__ == "__main__":
-    # inference()
-    fixed_trans_conv = nn.ConvTranspose3d(
-        in_channels=128,
-        out_channels=64,
-        kernel_size=(3, 4, 4),
-        stride=(1, 2, 2),
-        padding=1,
-    )
-    input_tensor = torch.randn(1, 128, 40, 40, 64)
-    output_tensor = fixed_trans_conv(input_tensor)
-    print(f"intput_tensor.shape={input_tensor.shape}")
-    print(f"output_tensor.shape={output_tensor.shape}")
+    test()
