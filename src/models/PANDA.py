@@ -7,6 +7,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Union, Type, List, Tuple
 
 
 class DownConv(nn.Module):
@@ -135,3 +136,188 @@ class MultiTask3DCNN(nn.Module):
         # avg_class_pred = torch.stack(class_preds, dim=0).mean(dim=0)
 
         return seg
+
+
+# ==================== Refer to the debug structure of nnUNet ====================
+class ConvDropoutNormReLU(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        self.conv = nn.Conv3d(
+            in_channels, out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding
+        )
+        self.norm = nn.InstanceNorm3d(
+            out_channels,
+            eps=1e-5,
+            momentum=0.1,
+            affine=True,
+            track_running_stats=False
+        )
+        self.nonlin = nn.LeakyReLU(0.01, inplace=True)
+        self.all_modules = nn.Sequential(
+            self.conv,
+            self.norm,
+            self.nonlin
+        )
+
+    def forward(self, x):
+        return self.all_modules(x)
+
+
+class StackedConvBlocks(nn.Module):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size=3,
+                 stride: Union[int, List[int], Tuple[int, ...]] = 1,
+                 padding=1):
+        super().__init__()
+        self.convs = nn.Sequential(
+            ConvDropoutNormReLU(in_channels, out_channels, kernel_size, stride, padding),
+            ConvDropoutNormReLU(out_channels, out_channels, kernel_size, 1, padding)
+        )
+
+    def forward(self, x):
+        return self.convs(x)
+
+
+class PlainConvEncoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # 使用ModuleList显式存储各阶段（更清晰的访问方式）
+        self.stages = nn.ModuleList([
+            nn.Sequential(StackedConvBlocks(1, 32, stride=1)),
+            nn.Sequential(StackedConvBlocks(32, 64, stride=2)),
+            nn.Sequential(StackedConvBlocks(64, 128, stride=2)),
+            nn.Sequential(StackedConvBlocks(128, 256, stride=2)),
+            nn.Sequential(StackedConvBlocks(256, 320, stride=2)),
+            nn.Sequential(StackedConvBlocks(320, 320, stride=(1, 2, 2)))
+        ])
+
+    def forward(self, x):
+        # 存储各阶段输出的列表
+        outputs = []
+        for stage in self.stages:
+            x = stage(x)
+            outputs.append(x)
+        return outputs  # 返回包含所有层级输出的列表
+
+
+class UNetDecoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = PlainConvEncoder()
+
+        # 转置卷积层（上采样路径）
+        self.transpconvs = nn.ModuleList([
+            nn.ConvTranspose3d(320, 320, kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+            nn.ConvTranspose3d(320, 256, kernel_size=2, stride=2),
+            nn.ConvTranspose3d(256, 128, kernel_size=2, stride=2),
+            nn.ConvTranspose3d(128, 64, kernel_size=2, stride=2),
+            nn.ConvTranspose3d(64, 32, kernel_size=2, stride=2)
+        ])
+
+        # 特征融合模块（包含两个卷积的StackedConvBlocks）
+        self.stages = nn.ModuleList([
+            StackedConvBlocks(640, 320),  # 320 * 2=640 (skip connection)
+            StackedConvBlocks(512, 256),  # 256 * 2=512
+            StackedConvBlocks(256, 128),  # 128 * 2=256
+            StackedConvBlocks(128, 64),  # 64 * 2=128
+            StackedConvBlocks(64, 32)  # 32 * 2=64
+        ])
+
+        # 分割输出层
+        self.seg_layers = nn.ModuleList([
+            nn.Conv3d(320, 2, kernel_size=1),
+            nn.Conv3d(256, 2, kernel_size=1),
+            nn.Conv3d(128, 2, kernel_size=1),
+            nn.Conv3d(64, 2, kernel_size=1),
+            nn.Conv3d(32, 2, kernel_size=1)
+        ])
+
+    def forward(self, encoder_outputs):
+        # 初始特征来自编码器最深层
+        x = encoder_outputs[-1]
+        seg_outputs = []
+
+        # 遍历每个解码阶段
+        for i in range(len(self.transpconvs)):
+            # 上采样操作
+            x = self.transpconvs[i](x)
+
+            # 获取对应的编码器特征（按从深到浅顺序）
+            encoder_feat = encoder_outputs[-(i + 2)]  # 例如i=0时取倒数第二层
+
+            # 跳跃连接（拼接通道维度）
+            x = torch.cat([x, encoder_feat], dim=1)
+
+            # 特征融合
+            x = self.stages[i](x)
+
+            # 生成当前尺度的分割结果
+            seg_outputs.append(self.seg_layers[i](x))
+
+        return seg_outputs
+
+
+# 测试代码
+if __name__ == "__main__":
+    model = PlainConvEncoder()
+    print(model)
+
+    x = torch.randn(1, 1, 40, 160, 256)
+    print(f"input: {x.shape}")
+    out = model(x)
+    print(type(out))
+    for _, u in enumerate(out):
+        print(f"index {_}: {u.shape}")
+# ==================== Refer to the debug structure of nnUNet ====================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
