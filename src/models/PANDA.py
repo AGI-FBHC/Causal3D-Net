@@ -10,135 +10,6 @@ import torch.nn.functional as F
 from typing import Union, Type, List, Tuple
 
 
-class DownConv(nn.Module):
-    def __init__(self, in_channels, out_channels, conv_type="shape"):
-        """
-        :param conv_type:
-            - 'fixed': no downsampling.
-            - 'depth': full DHW downsampling.
-            - 'shape': only H and W downsampling.
-        """
-        super().__init__()
-        # 决定 stride
-        if conv_type == "shape":
-            stride = (1, 2, 2)
-        elif conv_type == "depth":
-            stride = 2
-        elif conv_type == "fixed":
-            stride = 1
-        else:
-            raise ValueError(f"Invalid conv_type: {conv_type}.")
-
-        self.conv = nn.Sequential(
-            nn.Conv3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm3d(out_channels),
-            nn.ReLU(),
-            nn.Conv3d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1),
-            nn.BatchNorm3d(out_channels),
-            nn.ReLU(),
-        )
-
-    def forward(self, x):
-        return self.conv(x)
-
-
-class UpConv(nn.Module):
-    def __init__(self, in_channels, out_channels, conv_type="shape"):
-        """
-        :param conv_type:
-            - 'fixed': no upsampling
-            - 'depth': full DHW upsampling
-            - 'shape': only H and W upsampling
-        """
-        super().__init__()
-        if conv_type == "shape":
-            kernel_size = (3, 4, 4)
-            stride = (1, 2, 2)
-        elif conv_type == "depth":
-            kernel_size = 4
-            stride = 2
-        elif conv_type == "fixed":
-            kernel_size = 3
-            stride = 1
-        else:
-            raise ValueError(f"Invalid conv_type: {conv_type}")
-
-        self.conv = nn.Sequential(
-            nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm3d(out_channels),
-            nn.ReLU(),
-            nn.ConvTranspose3d(
-                out_channels, out_channels,
-                kernel_size=kernel_size, stride=stride, padding=1
-            ),
-            nn.BatchNorm3d(out_channels),
-            nn.ReLU()
-        )
-
-    def forward(self, x):
-        return self.conv(x)
-
-
-class MultiTask3DCNN(nn.Module):
-    def __init__(self, mask_num=2):
-        super().__init__()
-        self.mask_num = mask_num
-        # Encoder path
-        self.enc1 = DownConv(1, 32, conv_type="fixed")
-        self.enc2 = DownConv(32, 64, conv_type="shape")
-        self.enc3 = DownConv(64, 128, conv_type="shape")
-        self.enc4 = DownConv(128, 256, conv_type="depth")
-        self.enc5 = DownConv(256, 320, conv_type="depth")
-        self.enc6 = DownConv(320, 320, conv_type="depth")
-        self.enc7 = DownConv(320, 320, conv_type="fixed")
-
-        # Decoder path (symmetric)
-        self.dec1 = UpConv(320, 320, conv_type="depth")
-        self.dec2 = UpConv(320, 256, conv_type="depth")
-        self.dec3 = UpConv(256, 128, conv_type="depth")
-        self.dec4 = UpConv(128,  64, conv_type="shape")
-        self.dec5 = UpConv(64,  32, conv_type="shape")
-        self.dec6 = UpConv(32,  self.mask_num, conv_type="fixed")
-
-        # # 分类用的 Global Pooling + FC
-        # self.global_pool = nn.AdaptiveAvgPool3d(1)
-        # self.fc_layers = nn.ModuleList([
-        #     nn.Linear(c, 2) for c in [32, 64, 128, 256, 320, 320]  # 多层输出用于分类
-        # ])
-
-    def forward(self, x):
-        e1 = self.enc1(x)  # e1.shape = (B, 32, 40, 160, 256)
-        e2 = self.enc2(e1)  # e2.shape = (B, 64, 40 80 128)
-        e3 = self.enc3(e2)  # e3.shape = (B, 128, 40, 40, 64)
-        e4 = self.enc4(e3)  # e4.shape = (B, 256, 20, 20, 32)
-        e5 = self.enc5(e4)  # e5.shape = (B, 320, 10, 10, 16)
-        e6 = self.enc6(e5)  # e6.shape = (B, 320, 5, 5, 8)
-
-        d1 = self.enc7(e6)  # d1.shape = (B, 320, 5, 5, 8)
-        d2 = self.dec1(d1)  # d2.shape = (B, 320, 10, 10, 16)
-        d3 = self.dec2(d2)  # d3.shape = (B, 256, 20, 20, 32)
-        d4 = self.dec3(d3)  # d4.shape = (B, 128, 40, 40, 64)
-        d5 = self.dec4(d4)  # d5.shape = (B, 64, 40, 80, 128)
-        d6 = self.dec5(d5)  # d6.shape = (B, 32, 40, 160, 256)
-        seg = self.dec6(d6)  # seg.shape = (B, self.mask_num, 40, 160, 256)
-
-        # # Segmentation output
-        # seg_out = self.seg_head(d6)
-        #
-        # # Classification outputs (global pooling on encoder features)
-        # enc_features = [e1, e2, e3, e4, e5, e6]
-        # class_preds = []
-        # for i, feat in enumerate(enc_features):
-        #     pooled = self.global_pool(feat).view(feat.size(0), -1)
-        #     class_preds.append(self.fc_layers[i](pooled))
-        #
-        # # 平均多个层的分类预测结果（如图所示用加号）
-        # avg_class_pred = torch.stack(class_preds, dim=0).mean(dim=0)
-
-        return seg
-
-
-# ==================== Refer to the debug structure of nnUNet ====================
 class ConvDropoutNormReLU(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
         super().__init__()
@@ -156,11 +27,7 @@ class ConvDropoutNormReLU(nn.Module):
             track_running_stats=False
         )
         self.nonlin = nn.LeakyReLU(0.01, inplace=True)
-        self.all_modules = nn.Sequential(
-            self.conv,
-            self.norm,
-            self.nonlin
-        )
+        self.all_modules = nn.Sequential(self.conv, self.norm, self.nonlin)
 
     def forward(self, x):
         return self.all_modules(x)
@@ -206,11 +73,9 @@ class PlainConvEncoder(nn.Module):
 
 
 class UNetDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self, mask_num: int = 2):
         super().__init__()
-        self.encoder = PlainConvEncoder()
 
-        # 转置卷积层（上采样路径）
         self.transpconvs = nn.ModuleList([
             nn.ConvTranspose3d(320, 320, kernel_size=(1, 2, 2), stride=(1, 2, 2)),
             nn.ConvTranspose3d(320, 256, kernel_size=2, stride=2),
@@ -219,103 +84,146 @@ class UNetDecoder(nn.Module):
             nn.ConvTranspose3d(64, 32, kernel_size=2, stride=2)
         ])
 
-        # 特征融合模块（包含两个卷积的StackedConvBlocks）
         self.stages = nn.ModuleList([
-            StackedConvBlocks(640, 320),  # 320 * 2=640 (skip connection)
-            StackedConvBlocks(512, 256),  # 256 * 2=512
-            StackedConvBlocks(256, 128),  # 128 * 2=256
-            StackedConvBlocks(128, 64),  # 64 * 2=128
-            StackedConvBlocks(64, 32)  # 32 * 2=64
+            StackedConvBlocks(640, 320),  # 320(skip) + 320(transp)
+            StackedConvBlocks(512, 256),  # 256 + 256
+            StackedConvBlocks(256, 128),  # 128 + 128
+            StackedConvBlocks(128, 64),  # 64 + 64
+            StackedConvBlocks(64, 32)  # 32 + 32
         ])
 
-        # 分割输出层
         self.seg_layers = nn.ModuleList([
-            nn.Conv3d(320, 2, kernel_size=1),
-            nn.Conv3d(256, 2, kernel_size=1),
-            nn.Conv3d(128, 2, kernel_size=1),
-            nn.Conv3d(64, 2, kernel_size=1),
-            nn.Conv3d(32, 2, kernel_size=1)
+            nn.Conv3d(320, mask_num, kernel_size=1),
+            nn.Conv3d(256, mask_num, kernel_size=1),
+            nn.Conv3d(128, mask_num, kernel_size=1),
+            nn.Conv3d(64, mask_num, kernel_size=1),
+            nn.Conv3d(32, mask_num, kernel_size=1)
         ])
 
-    def forward(self, encoder_outputs):
-        # 初始特征来自编码器最深层
+    def forward(self, encoder_outputs: List[torch.Tensor]):
         x = encoder_outputs[-1]
-        seg_outputs = []
+        segment_outputs = []
+        classfiy_outputs = []
 
-        # 遍历每个解码阶段
-        for i in range(len(self.transpconvs)):
-            # 上采样操作
+        for i in range(5):
             x = self.transpconvs[i](x)
-
-            # 获取对应的编码器特征（按从深到浅顺序）
-            encoder_feat = encoder_outputs[-(i + 2)]  # 例如i=0时取倒数第二层
-
-            # 跳跃连接（拼接通道维度）
-            x = torch.cat([x, encoder_feat], dim=1)
-
-            # 特征融合
+            # 获取对应层级的编码器特征(索引从倒数第二层开始)
+            skip = encoder_outputs[-(i + 2)]
+            x = torch.cat([x, skip], dim=1)
             x = self.stages[i](x)
+            segment_outputs.append(self.seg_layers[i](x))
+            classfiy_outputs.append(x)
 
-            # 生成当前尺度的分割结果
-            seg_outputs.append(self.seg_layers[i](x))
+        return segment_outputs[::-1], classfiy_outputs
 
-        return seg_outputs
+
+class ClassifierDecoder(nn.Module):
+    def __init__(self, class_num: int = 2):
+        super().__init__()
+
+        # 各层级特征处理模块
+        self.stage_processors = nn.ModuleList([
+            # 每个层级的处理流：全局池化 → FC
+            nn.Sequential(
+                nn.AdaptiveMaxPool3d(1),  # [B,320,1,1,1]
+                nn.Flatten(),  # [B,320]
+                nn.Linear(320, 64),  # 降维到64
+                nn.LeakyReLU(0.01, inplace=True)  # 1/5.5 备选
+            ),
+            nn.Sequential(
+                nn.AdaptiveMaxPool3d(1),  # [B,256,1,1,1]
+                nn.Flatten(),
+                nn.Linear(256, 64),
+                nn.LeakyReLU(0.01, inplace=True)
+            ),
+            nn.Sequential(
+                nn.AdaptiveMaxPool3d(1),  # [B,128,1,1,1]
+                nn.Flatten(),
+                nn.Linear(128, 64),
+                nn.LeakyReLU(0.01, inplace=True)
+            ),
+            nn.Sequential(
+                nn.AdaptiveMaxPool3d(1),  # [B,64,1,1,1]
+                nn.Flatten(),
+                nn.Linear(64, 64),
+                nn.LeakyReLU(0.01, inplace=True)
+            ),
+            nn.Sequential(
+                nn.AdaptiveMaxPool3d(1),  # [B,32,1,1,1]
+                nn.Flatten(),
+                nn.Linear(32, 64),
+                nn.LeakyReLU(0.01, inplace=True)
+            )
+        ])
+
+        # 最终分类层（融合所有层级特征）
+        self.final_classifier = nn.Sequential(
+            nn.Linear(64 * 5, 128),  # 融合特征维度64 * 5=320
+            nn.LeakyReLU(0.01),
+            # nn.Dropout(0.5),
+            nn.Linear(128, class_num)
+        )
+
+    def forward(self, classify_outputs: List[torch.Tensor]):
+        """
+        :param classify_outputs: 来自UNetDecoder的5个层级特征图，形状依次为：
+            [B,320,D1,H1,W1]
+            [B,256,D2,H2,W2]
+            [B,128,D3,H3,W3]
+            [B,64,D4,H4,W4]
+            [B,32,D5,H5,W5]
+        """
+        # 特征处理分支
+        processed_features = []
+        for feat, processor in zip(classify_outputs, self.stage_processors):
+            processed = processor(feat)  # 每个特征输出[B,64]
+            processed_features.append(processed)
+
+        # 特征拼接
+        combined = torch.cat(processed_features, dim=1)  # [B, 320]
+
+        # 最终分类
+        return self.final_classifier(combined)  # [B, class_num]
+
+
+class SegNet(nn.Module):
+    def __init__(self, mask_num: int = 2):
+        super().__init__()
+        self.encoder = PlainConvEncoder()
+        self.seg_decoder = UNetDecoder(mask_num=mask_num)
+
+    def forward(self, x):
+        skip = self.encoder(x)
+        return self.seg_decoder(skip)
+
+
+class MultiTask3DCNN(nn.Module):
+    def __init__(self, mask_num: int = 2, cls_num: int = 2):
+        super().__init__()
+        self.encoder = PlainConvEncoder()
+        self.seg_decoder = UNetDecoder(mask_num=mask_num)
+        self.cls_decoder = ClassifierDecoder(class_num=cls_num)
+
+    def forward(self, x):
+        skip = self.encoder(x)
+        seg_out, cls_features = self.seg_decoder(skip)
+        return seg_out, self.cls_decoder(cls_features)
 
 
 # 测试代码
 if __name__ == "__main__":
-    model = PlainConvEncoder()
-    print(model)
+    stage1_model = SegNet()
+    stage2_model = MultiTask3DCNN()
 
-    x = torch.randn(1, 1, 40, 160, 256)
-    print(f"input: {x.shape}")
-    out = model(x)
-    print(type(out))
-    for _, u in enumerate(out):
-        print(f"index {_}: {u.shape}")
-# ==================== Refer to the debug structure of nnUNet ====================
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # 前向传播流程
+    input_tensor = torch.randn(1, 1, 80, 160, 256)  # (B, C, D, H, W)
+    seg_outs, _ = stage1_model(input_tensor)
+    for _, u in enumerate(seg_outs):
+        print(f"{_}: {u.size()}")
+    seg_outs, cls_outs = stage2_model(input_tensor)
+    for _, u in enumerate(seg_outs):
+        print(f"{_}: {u.size()}")
+    print(cls_outs.shape)
 
 
 
