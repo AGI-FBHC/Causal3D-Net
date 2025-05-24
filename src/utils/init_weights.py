@@ -18,8 +18,8 @@ def init_weights_kaiming(m):
     pass
 
 
-def load_shared_weights(stage2_model, path="segnet_weights.pth"):
-    segnet_weights = torch.load(path)
+def load_shared_weights(stage2_model, weight_path="segnet_weights.pth"):
+    segnet_weights = torch.load(weight_path)
     model_dict = stage2_model.state_dict()
 
     # 过滤掉分类部分

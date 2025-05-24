@@ -5,19 +5,20 @@
 # @FileName: train.py
 # @Project : Causal3D-Net
 import torch
+import torchio as tio
 import torch.nn as nn
+import torch.cuda as cuda
+import torch.optim as optim
+from torchvision import transforms
+from torch.utils.data import DataLoader
 import logging
 import os, argparse
 import nibabel as nib
-from torchvision import transforms
-import torch.optim as optim
 from tqdm import tqdm
 from src.dataset.PC_dataset import *
-from torch.utils.data import DataLoader
-import torchio as tio
 from src.models.ResNet import generate_model
 from src.models.ViT import ViTClassifier
-import torch.cuda as cuda
+from src.models.PANDA import SegNet, MultiTask3DCNN
 from src.utils.window import *
 import matplotlib.pyplot as plt
 from datetime import datetime

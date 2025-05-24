@@ -54,13 +54,21 @@ class PlainConvEncoder(nn.Module):
     def __init__(self):
         super().__init__()
         # 使用ModuleList显式存储各阶段（更清晰的访问方式）
+        # self.stages = nn.ModuleList([
+        #     nn.Sequential(StackedConvBlocks(1, 32, stride=1)),
+        #     nn.Sequential(StackedConvBlocks(32, 64, stride=2)),
+        #     nn.Sequential(StackedConvBlocks(64, 128, stride=2)),
+        #     nn.Sequential(StackedConvBlocks(128, 256, stride=2)),
+        #     nn.Sequential(StackedConvBlocks(256, 320, stride=2)),
+        #     nn.Sequential(StackedConvBlocks(320, 320, stride=(1, 2, 2)))
+        # ])
         self.stages = nn.ModuleList([
             nn.Sequential(StackedConvBlocks(1, 32, stride=1)),
-            nn.Sequential(StackedConvBlocks(32, 64, stride=2)),
-            nn.Sequential(StackedConvBlocks(64, 128, stride=2)),
+            nn.Sequential(StackedConvBlocks(32, 64, stride=(1, 2, 2))),
+            nn.Sequential(StackedConvBlocks(64, 128, stride=(1, 2, 2))),
             nn.Sequential(StackedConvBlocks(128, 256, stride=2)),
             nn.Sequential(StackedConvBlocks(256, 320, stride=2)),
-            nn.Sequential(StackedConvBlocks(320, 320, stride=(1, 2, 2)))
+            nn.Sequential(StackedConvBlocks(320, 320, stride=2))
         ])
 
     def forward(self, x):
@@ -76,12 +84,19 @@ class UNetDecoder(nn.Module):
     def __init__(self, mask_num: int = 2):
         super().__init__()
 
+        # self.transpconvs = nn.ModuleList([
+        #     nn.ConvTranspose3d(320, 320, kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+        #     nn.ConvTranspose3d(320, 256, kernel_size=2, stride=2),
+        #     nn.ConvTranspose3d(256, 128, kernel_size=2, stride=2),
+        #     nn.ConvTranspose3d(128, 64, kernel_size=2, stride=2),
+        #     nn.ConvTranspose3d(64, 32, kernel_size=2, stride=2)
+        # ])
         self.transpconvs = nn.ModuleList([
-            nn.ConvTranspose3d(320, 320, kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+            nn.ConvTranspose3d(320, 320, kernel_size=2, stride=2),
             nn.ConvTranspose3d(320, 256, kernel_size=2, stride=2),
             nn.ConvTranspose3d(256, 128, kernel_size=2, stride=2),
-            nn.ConvTranspose3d(128, 64, kernel_size=2, stride=2),
-            nn.ConvTranspose3d(64, 32, kernel_size=2, stride=2)
+            nn.ConvTranspose3d(128, 64, kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+            nn.ConvTranspose3d(64, 32, kernel_size=(1, 2, 2), stride=(1, 2, 2))
         ])
 
         self.stages = nn.ModuleList([
@@ -118,40 +133,45 @@ class UNetDecoder(nn.Module):
 
 
 class ClassifierDecoder(nn.Module):
-    def __init__(self, class_num: int = 2):
+    def __init__(self,
+                 class_num: int = 2,
+                 input_feature_list: List[int] = None,
+                 middle_feature_dim: int = 64,
+                 ):
         super().__init__()
-
+        input_feature_list = [320, 256, 128, 64, 32] \
+            if input_feature_list is None else input_feature_list
         # 各层级特征处理模块
         self.stage_processors = nn.ModuleList([
             # 每个层级的处理流：全局池化 → FC
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,320,1,1,1]
                 nn.Flatten(),  # [B,320]
-                nn.Linear(320, 64),  # 降维到64
+                nn.Linear(input_feature_list[0], middle_feature_dim),  # 降维到64
                 nn.LeakyReLU(0.01, inplace=True)  # 1/5.5 备选
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,256,1,1,1]
                 nn.Flatten(),
-                nn.Linear(256, 64),
+                nn.Linear(input_feature_list[1], middle_feature_dim),
                 nn.LeakyReLU(0.01, inplace=True)
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,128,1,1,1]
                 nn.Flatten(),
-                nn.Linear(128, 64),
+                nn.Linear(input_feature_list[2], middle_feature_dim),
                 nn.LeakyReLU(0.01, inplace=True)
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,64,1,1,1]
                 nn.Flatten(),
-                nn.Linear(64, 64),
+                nn.Linear(input_feature_list[3], middle_feature_dim),
                 nn.LeakyReLU(0.01, inplace=True)
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,32,1,1,1]
                 nn.Flatten(),
-                nn.Linear(32, 64),
+                nn.Linear(input_feature_list[4], middle_feature_dim),
                 nn.LeakyReLU(0.01, inplace=True)
             )
         ])
@@ -216,9 +236,11 @@ if __name__ == "__main__":
     stage2_model = MultiTask3DCNN()
 
     # 前向传播流程
-    input_tensor = torch.randn(1, 1, 80, 160, 256)  # (B, C, D, H, W)
-    seg_outs, _ = stage1_model(input_tensor)
+    input_tensor = torch.randn(1, 1, 40, 160, 256)  # (B, C, D, H, W)
+    seg_outs, cls_feats = stage1_model(input_tensor)
     for _, u in enumerate(seg_outs):
+        print(f"{_}: {u.size()}")
+    for _, u in enumerate(cls_feats):
         print(f"{_}: {u.size()}")
     seg_outs, cls_outs = stage2_model(input_tensor)
     for _, u in enumerate(seg_outs):
