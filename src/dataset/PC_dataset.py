@@ -18,18 +18,25 @@ import torchio as tio
 from src.utils.visual3D import show_volume_plotly, show_middle_slice
 
 
-
 class PCDataset(Dataset):
     def __init__(self, excel_path,
                  transform=None,
                  is_expand=False,
                  use_mask=False,
-                 only_cls=True):
+                 return_type=0):
+        """
+        :param excel_path:
+        :param transform:
+        :param is_expand:
+        :param use_mask:
+        :param return_type: `0` 用于仅分类, `1` 用于仅分割, `2` 用于多任务.
+        """
         super().__init__()
         self.df = pd.read_excel(excel_path)
         self.transform = transform
         self.is_expand = is_expand
         self.use_mask = use_mask
+        self.return_type = return_type
         if not self.is_expand:
             self.df = self.df.loc[self.df["raw_data"], :]
 
@@ -41,22 +48,18 @@ class PCDataset(Dataset):
             idx = idx.tolist()
             pass
         row = self.df.iloc[idx]
-        image_path = row['image_path']
-        mask_path = row['mask_path']
-        label = row['cancer']
+        image_path = row["image_path"]
+        mask_path = row["mask_path"]
+        cls_label = row["cancer"]
 
         image_array = np.load(image_path)
         mask_array = np.load(mask_path)
-        if self.use_mask:
-            X = image_array *  mask_array
-        else:
-            X = image_array
-        show_middle_slice(image_array,
-                          save_name="/home/huangdn/Causal3D-Net/src/logging_record/origin",
-                          mask=mask_array)
+        X = image_array * mask_array if self.use_mask else image_array
+        # show_middle_slice(image_array,
+        #                   save_name="/home/huangdn/Causal3D-Net/src/logging_record/origin",
+        #                   mask=mask_array)
         X = np.expand_dims(X, axis=0)
         mask_array = np.expand_dims(mask_array, axis=0)
-        print(f"before: {X.shape}")
         if self.transform:
             subject = tio.Subject(
                 image=tio.ScalarImage(tensor=X),
@@ -64,34 +67,38 @@ class PCDataset(Dataset):
             )
             transformed = self.transform(subject)
             X = transformed['image'].data
-            mask_array = transformed['mask'].data
+            msk_label = transformed['mask'].data
         else:
             X = torch.from_numpy(X)
-        show_middle_slice(X.squeeze().cpu().numpy(),
-                          save_name="/home/huangdn/Causal3D-Net/src/logging_record/resized",
-                          mask=mask_array.squeeze().cpu().numpy())
-        print(f"after: {X.shape}")
-        # if self.transform:
-        #     X = self.transform(X)
-        y = label
-        return image_path, X, y
+            msk_label = torch.from_numpy(mask_array)
+            pass
+        # show_middle_slice(X.squeeze().cpu().numpy(),
+        #                   save_name="/home/huangdn/Causal3D-Net/src/logging_record/resized",
+        #                   mask=mask_array.squeeze().cpu().numpy())
+        if self.return_type == 0:
+            return X, cls_label
+        elif self.return_type == 1:
+            return X, msk_label
+        elif self.return_type == 2:
+            return X, msk_label, cls_label
 
 
 if __name__ == '__main__':
-    batch_size = 1
+    batch_size = 4
     transform = tio.Compose([
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.Resize((40, 160, 256)),
     ])
     excel_path = "/home/huangdn/Causal3D-Net/src/dataset/roi_data_finger.xlsx"
-    dataset = PCDataset(excel_path=excel_path, transform=transform)
+    dataset = PCDataset(excel_path=excel_path, transform=transform, return_type=2)
     loader = DataLoader(dataset,
                               batch_size=batch_size,
                               shuffle=False,
                               num_workers=1,
                               pin_memory=True)
-    for _, x, y in tqdm(loader):
+    for x, y_msk, y_cls in tqdm(loader):
+        print(x.shape, y_msk.shape, y_cls.shape)
         break
     pass
 

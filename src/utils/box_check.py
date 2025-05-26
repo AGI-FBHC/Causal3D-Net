@@ -26,7 +26,7 @@ def make_box_mask():
 
     box_mask = sitk.GetImageFromArray(box_mask_array)
     box_mask.CopyInformation(mask)  # 保持和原mask一样的spacing、origin、direction等
-    save_path = os.path.join("/home/huangdn/Causal3D-Net/src/mics", "box_mask.nii.gz")
+    save_path = os.path.join("/home/huangdn/Causal3D-Net/src/results", "box_mask.nii.gz")
     sitk.WriteImage(box_mask, save_path)
     print(f"Box mask已保存到: {save_path}")
     pass
