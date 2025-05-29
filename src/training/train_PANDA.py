@@ -21,10 +21,17 @@ import matplotlib.pyplot as plt
 
 from src.dataset.PC_dataset import PCDataset
 from src.models.PANDA import SegNet, MultiTask3DCNN
-from src.augmentation.window import *
+from src.augmentation.window import Windowing
+from src.augmentation.brightness import MultiplicativeBrightnessTransform
+from src.augmentation.contrast import ContrastTransform
+from src.augmentation.gamma import GammaTransform
+from src.augmentation.gaussian_blur import GaussianBlurTransform
+from src.augmentation.gaussian_noise import GaussianNoiseTransform
+from src.augmentation.low_resolution import SimulateLowResolutionTransform
 from src.metric.loss import DiceLoss, MultiScaleSegmentationLoss
 from src.lr_scheduler.linear_lr import linear_lr_lambda
 from src.utils.plot_metrics import plot_combined_metrics
+from src.utils.init_weights import init_weights_kaiming
 
 import warnings
 
@@ -39,6 +46,7 @@ def stage_1_train(train_excel,
     current_dir = os.path.join(output_dir, current_time)
     os.makedirs(current_dir, exist_ok=True)
     log_filename = os.path.join(current_dir, "train.log")
+    model_save_path = os.path.join(current_dir, "best_model.pth")
     logging.basicConfig(
         filename=log_filename,
         level=logging.INFO,
@@ -55,7 +63,9 @@ def stage_1_train(train_excel,
     num_epochs = 1000
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
-    model = SegNet(mask_num=1).to(device)
+    model = SegNet(mask_num=1)
+    model.apply(init_weights_kaiming)
+    model.to(device)
     criterion = MultiScaleSegmentationLoss()
     optimizer = optim.AdamW(model.parameters(), lr=initial_lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -64,9 +74,63 @@ def stage_1_train(train_excel,
     )
 
     transform = tio.Compose([
+        # pre
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.Resize((40, 160, 256)),
+
+        # aug
+        GaussianNoiseTransform(
+            noise_variance=(0, 0.1),
+            p_per_channel=1.0,
+            synchronize_channels=True,
+            p=0.1
+        ),
+        GaussianBlurTransform(
+            blur_sigma=(0.5, 1.0),
+            synchronize_channels=False,
+            synchronize_axes=False,
+            p_per_channel=0.5,
+            p=0.2
+        ),
+        MultiplicativeBrightnessTransform(
+            multiplier_range=(0.75, 1.25),
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p=0.15
+        ),
+        ContrastTransform(
+            contrast_range=(0.75, 1.25),
+            preserve_range=True,
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p=0.15
+        ),
+        SimulateLowResolutionTransform(
+            scale=(0.5, 1.0),
+            synchronize_channels=False,
+            synchronize_axes=True,
+            ignore_axes=(0,),
+            allowed_channels=None,
+            p_per_channel=0.5,
+            p=0.25
+        ),
+        GammaTransform(
+            gamma=(0.7, 1.5),
+            p_invert_image=1.0,
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p_retain_stats=1.0,
+            p=0.1
+        ),
+        GammaTransform(
+            gamma=(0.7, 1.5),
+            p_invert_image=1.0,
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p_retain_stats=1.0,
+            p=0.3
+        ),
     ])
 
     train_dataset = PCDataset(excel_path=train_excel,
@@ -89,6 +153,7 @@ def stage_1_train(train_excel,
     all_train_losses, all_test_losses = [], []
     all_train_dices, all_test_dices = [], []
 
+    best_dice = 0.0
     for epoch in tqdm(range(num_epochs)):
         model.train()
         train_loss, train_dice = 0.0, 0.0
@@ -132,17 +197,24 @@ def stage_1_train(train_excel,
         all_train_dices.append(avg_train_dice)
         all_test_dices.append(avg_test_dice)
 
-        log_msg = (f"[Epoch {epoch + 1}/{num_epochs}] "
+        current_lr = optimizer.param_groups[0]['lr']
+        log_msg = (f"[Epoch {epoch + 1}/{num_epochs}, LR {current_lr:.6f}] "
                 f"Train Loss: {avg_train_loss:.4f}, Train Dice: {avg_train_dice:.4f} | "
                 f"Test Loss: {avg_test_loss:.4f}, Test Dice: {avg_test_dice:.4f}")
         logging.info(log_msg)
+        scheduler.step()
 
-    plot_combined_metrics(
-        all_train_losses, all_test_losses,
-        all_train_dices, all_test_dices,
-        save_dir=current_dir,
-        filename='training_process.png'
-    )
+        if avg_test_dice > best_dice:
+            best_dice = avg_test_dice
+            torch.save(model.state_dict(), model_save_path)
+            logging.info(f"Best model updated at epoch {epoch+1}, Dice: {best_dice:.4f}")
+
+        plot_combined_metrics(
+            all_train_losses, all_test_losses,
+            all_train_dices, all_test_dices,
+            save_dir=current_dir,
+            filename='training_process.png'
+        )
 
 
 if __name__ == '__main__':

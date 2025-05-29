@@ -9,11 +9,11 @@ import torch.nn as nn
 
 
 class ViTClassifier(nn.Module):
-    def __init__(self, img_size=(128, 256, 256), num_classes=2):
+    def __init__(self, img_size=(40, 160, 256), num_classes=2):
         super().__init__()
         self.vit = ViT(
             in_channels=1,
-            img_size=(128, 256, 256),
+            img_size=img_size,
             patch_size=(16, 16, 16),
             hidden_size=768,
             mlp_dim=3072,
