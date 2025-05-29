@@ -237,3 +237,22 @@ def generate_model(model_depth, **kwargs):
         model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), **kwargs)
 
     return model
+
+
+if __name__ == '__main__':
+    model = generate_model(10, n_input_channels=1, n_classes=2)
+    x = torch.randn(1, 1, 40, 160, 256)
+    y = model(x)
+    print(x.size(), y.size())
+    pass
+
+
+
+
+
+
+
+
+
+
+

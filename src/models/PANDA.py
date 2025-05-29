@@ -10,6 +10,12 @@ import torch.nn.functional as F
 from typing import Union, Type, List, Tuple
 
 
+# torch.backends.cudnn.allow_tf32 = False  # 禁止 TF32 避免误选计划
+# torch.backends.cuda.matmul.allow_tf32 = False  # 同上
+# torch.backends.cudnn.benchmark = False
+# torch.backends.cudnn.deterministic = True
+
+
 class ConvDropoutNormReLU(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
         super().__init__()
@@ -84,13 +90,6 @@ class UNetDecoder(nn.Module):
     def __init__(self, mask_num: int = 2):
         super().__init__()
 
-        # self.transpconvs = nn.ModuleList([
-        #     nn.ConvTranspose3d(320, 320, kernel_size=(1, 2, 2), stride=(1, 2, 2)),
-        #     nn.ConvTranspose3d(320, 256, kernel_size=2, stride=2),
-        #     nn.ConvTranspose3d(256, 128, kernel_size=2, stride=2),
-        #     nn.ConvTranspose3d(128, 64, kernel_size=2, stride=2),
-        #     nn.ConvTranspose3d(64, 32, kernel_size=2, stride=2)
-        # ])
         self.transpconvs = nn.ModuleList([
             nn.ConvTranspose3d(320, 320, kernel_size=2, stride=2),
             nn.ConvTranspose3d(320, 256, kernel_size=2, stride=2),
@@ -230,22 +229,16 @@ class MultiTask3DCNN(nn.Module):
         return seg_out, self.cls_decoder(cls_features)
 
 
-# 测试代码
 if __name__ == "__main__":
-    stage1_model = SegNet()
-    stage2_model = MultiTask3DCNN()
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+
+    stage1_model = SegNet().to(device)
 
     # 前向传播流程
-    input_tensor = torch.randn(1, 1, 40, 160, 256)  # (B, C, D, H, W)
-    seg_outs, cls_feats = stage1_model(input_tensor)
-    for _, u in enumerate(seg_outs):
-        print(f"{_}: {u.size()}")
-    for _, u in enumerate(cls_feats):
-        print(f"{_}: {u.size()}")
-    seg_outs, cls_outs = stage2_model(input_tensor)
-    for _, u in enumerate(seg_outs):
-        print(f"{_}: {u.size()}")
-    print(cls_outs.shape)
+    input_tensor = torch.randn(4, 1, 40, 160, 256)  # (B, C, D, H, W)
+    input_tensor = input_tensor.to(device)
+    output = stage1_model(input_tensor)
+
 
 
 

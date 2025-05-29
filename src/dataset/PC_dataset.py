@@ -4,18 +4,15 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: PC_dataset.py
 # @Project : Causal3D-Net
-import os
 import pandas as pd
 import torch
 import numpy as np
-import SimpleITK as sitk
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.utils.window import *
+from src.augmentation.window import *
 import torchio as tio
-from src.utils.visual3D import show_volume_plotly, show_middle_slice
 
 
 class PCDataset(Dataset):
