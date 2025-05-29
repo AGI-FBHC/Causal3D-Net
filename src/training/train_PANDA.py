@@ -46,7 +46,8 @@ def stage_1_train(train_excel,
     current_dir = os.path.join(output_dir, current_time)
     os.makedirs(current_dir, exist_ok=True)
     log_filename = os.path.join(current_dir, "train.log")
-    model_save_path = os.path.join(current_dir, "best_model.pth")
+    best_model_save_path = os.path.join(current_dir, "best_model.pth")
+    last_model_save_path = os.path.join(current_dir, "last_model.pth")
     logging.basicConfig(
         filename=log_filename,
         level=logging.INFO,
@@ -206,8 +207,10 @@ def stage_1_train(train_excel,
 
         if avg_test_dice > best_dice:
             best_dice = avg_test_dice
-            torch.save(model.state_dict(), model_save_path)
+            torch.save(model.state_dict(), best_model_save_path)
             logging.info(f"Best model updated at epoch {epoch+1}, Dice: {best_dice:.4f}")
+
+        torch.save(model.state_dict(), last_model_save_path)
 
         plot_combined_metrics(
             all_train_losses, all_test_losses,

@@ -59,15 +59,6 @@ class StackedConvBlocks(nn.Module):
 class PlainConvEncoder(nn.Module):
     def __init__(self):
         super().__init__()
-        # 使用ModuleList显式存储各阶段（更清晰的访问方式）
-        # self.stages = nn.ModuleList([
-        #     nn.Sequential(StackedConvBlocks(1, 32, stride=1)),
-        #     nn.Sequential(StackedConvBlocks(32, 64, stride=2)),
-        #     nn.Sequential(StackedConvBlocks(64, 128, stride=2)),
-        #     nn.Sequential(StackedConvBlocks(128, 256, stride=2)),
-        #     nn.Sequential(StackedConvBlocks(256, 320, stride=2)),
-        #     nn.Sequential(StackedConvBlocks(320, 320, stride=(1, 2, 2)))
-        # ])
         self.stages = nn.ModuleList([
             nn.Sequential(StackedConvBlocks(1, 32, stride=1)),
             nn.Sequential(StackedConvBlocks(32, 64, stride=(1, 2, 2))),
