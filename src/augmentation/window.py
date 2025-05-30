@@ -35,4 +35,7 @@ class Windowing(tio.Transform):
         return subject
 
 
+def rescale_back(image, in_min=0, in_max=1, out_min=-100, out_max=240):
+    return image * (out_max - out_min) + out_min
+
 

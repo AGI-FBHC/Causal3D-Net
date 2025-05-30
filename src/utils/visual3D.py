@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 import os
 import matplotlib.pyplot as plt
 
+from src.augmentation.window import rescale_back
+
 
 def show_volume_plotly(volume, save_name="volume_view"):
     """
@@ -91,4 +93,60 @@ def show_middle_slice(volume, save_name, title="", mask=None):
     plt.axis('off')
     plt.savefig(save_name, bbox_inches='tight', pad_inches=0, transparent=True)
     plt.close()
+
+
+
+def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None, alpha_gt=0.4, alpha_pred=0.4, save_path=None):
+    """
+    Visualize a middle slice of the 3D image with GT and predicted mask.
+    Red = GT, Blue = Prediction
+    """
+    if image.ndim == 4:
+        image = image.squeeze(0)  # [D, H, W]
+    if gt_mask.ndim == 4:
+        gt_mask = gt_mask.squeeze(0)
+    if pred_mask.ndim == 4:
+        pred_mask = pred_mask.squeeze(0)
+
+    if slice_idx is None:
+        slice_idx = image.shape[0] // 2
+
+    assert slice_idx < image.shape[0], f"slice_idx={slice_idx} exceeds image depth={image.shape[0]}"
+
+    # Slice extraction
+    img_slice = image[slice_idx].cpu().numpy()
+    img_slice = rescale_back(img_slice, 0, 1, -100, 240)  # 恢复回window值范围，若你希望保留原window信息
+    gt_slice = gt_mask[slice_idx].cpu().numpy()
+    pred_slice = pred_mask[slice_idx].cpu().numpy()
+
+    # Normalize image for display
+    img_display = (img_slice - img_slice.min()) / (img_slice.max() - img_slice.min())
+
+    # 创建 RGBA 覆盖图层
+    red_overlay = np.zeros((*gt_slice.shape, 4), dtype=np.float32)
+    blue_overlay = np.zeros((*pred_slice.shape, 4), dtype=np.float32)
+
+    red_overlay[..., 0] = 1.0  # Red channel
+    red_overlay[..., 3] = (gt_slice > 0).astype(np.float32) * alpha_gt  # Alpha for GT
+
+    blue_overlay[..., 2] = 1.0  # Blue channel
+    blue_overlay[..., 3] = (pred_slice > 0).astype(np.float32) * alpha_pred  # Alpha for prediction
+
+    # 绘图
+    plt.figure(figsize=(10, 5))
+    plt.imshow(img_display, cmap='gray')
+    plt.imshow(red_overlay)
+    plt.imshow(blue_overlay)
+    plt.title(f"Slice {slice_idx} | Red=GT, Blue=Prediction")
+    plt.axis('off')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=200, bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
+
+
+
 

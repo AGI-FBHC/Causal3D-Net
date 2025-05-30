@@ -64,8 +64,8 @@ def stage_1_train(train_excel,
     num_epochs = 1000
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
-    model = SegNet(mask_num=1)
-    model.apply(init_weights_kaiming)
+    model = SegNet(mask_num=2)
+    # model.apply(init_weights_kaiming)
     model.to(device)
     criterion = MultiScaleSegmentationLoss()
     optimizer = optim.AdamW(model.parameters(), lr=initial_lr, weight_decay=weight_decay)
