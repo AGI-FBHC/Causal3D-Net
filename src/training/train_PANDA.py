@@ -28,7 +28,7 @@ from src.augmentation.gamma import GammaTransform
 from src.augmentation.gaussian_blur import GaussianBlurTransform
 from src.augmentation.gaussian_noise import GaussianNoiseTransform
 from src.augmentation.low_resolution import SimulateLowResolutionTransform
-from src.metric.loss import DiceLoss, MultiScaleSegmentationLoss
+from src.metric.loss import DiceLoss, MultiScaleSegmentationLoss, compute_dice_score
 from src.lr_scheduler.linear_lr import linear_lr_lambda
 from src.utils.plot_metrics import plot_combined_metrics
 from src.utils.init_weights import init_weights_kaiming
@@ -61,12 +61,13 @@ def stage_1_train(train_excel,
     batch_size = 4
     initial_lr = 1e-2
     weight_decay = 3e-5
-    num_epochs = 1000
+    num_epochs = 200
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
     model = SegNet(mask_num=2)
-    # model.apply(init_weights_kaiming)
+    model.apply(init_weights_kaiming)
     model.to(device)
+
     criterion = MultiScaleSegmentationLoss()
     optimizer = optim.AdamW(model.parameters(), lr=initial_lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -132,6 +133,17 @@ def stage_1_train(train_excel,
             p_retain_stats=1.0,
             p=0.3
         ),
+        tio.RandomAffine(
+            scales=(0.8, 1.2),
+            degrees=10,
+            isotropic=False,
+            p=0.5),
+        tio.RandomElasticDeformation(
+            num_control_points=7,
+            max_displacement=3,
+            locked_borders=2,  # 避免边界扭曲过强
+            p=0.3
+        )
     ])
 
     train_dataset = PCDataset(excel_path=train_excel,
@@ -168,10 +180,9 @@ def stage_1_train(train_excel,
             train_loss += loss.item()
 
             with torch.no_grad():
-                pred_mask = torch.sigmoid(y_sgs[0])
-                pred_bin = (pred_mask > 0.5).float()
-                dice = 1 - DiceLoss()(pred_bin, y)
-                train_dice += dice.item()
+                highest_res = y_sgs[0]
+                dice_score = compute_dice_score(highest_res, y)
+                train_dice += dice_score.item()
         avg_train_loss = train_loss / len(train_loader)
         avg_train_dice = train_dice / len(train_loader)
 
@@ -185,13 +196,13 @@ def stage_1_train(train_excel,
                 loss = criterion(y_sgs, y)
                 test_loss += loss.item()
 
-                pred_mask = torch.sigmoid(y_sgs[0])
-                pred_bin = (pred_mask > 0.5).float()
-                dice = 1 - DiceLoss()(pred_bin, y)
-                test_dice += dice.item()
+                dice_score = compute_dice_score(y_sgs[0], y)
+                test_dice += dice_score.item()
 
         avg_test_loss = test_loss / len(test_loader)
         avg_test_dice = test_dice / len(test_loader)
+
+        scheduler.step()
 
         all_train_losses.append(avg_train_loss)
         all_test_losses.append(avg_test_loss)
@@ -203,7 +214,6 @@ def stage_1_train(train_excel,
                 f"Train Loss: {avg_train_loss:.4f}, Train Dice: {avg_train_dice:.4f} | "
                 f"Test Loss: {avg_test_loss:.4f}, Test Dice: {avg_test_dice:.4f}")
         logging.info(log_msg)
-        scheduler.step()
 
         if avg_test_dice > best_dice:
             best_dice = avg_test_dice
@@ -218,6 +228,7 @@ def stage_1_train(train_excel,
             save_dir=current_dir,
             filename='training_process.png'
         )
+        break
 
 
 if __name__ == '__main__':

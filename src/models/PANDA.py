@@ -221,14 +221,16 @@ class MultiTask3DCNN(nn.Module):
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 
     stage1_model = SegNet().to(device)
 
     # 前向传播流程
     input_tensor = torch.randn(4, 1, 40, 160, 256)  # (B, C, D, H, W)
     input_tensor = input_tensor.to(device)
-    output = stage1_model(input_tensor)
+    output1, output2 = stage1_model(input_tensor)
+    for u in output1:
+        print(u.shape)
 
 
 

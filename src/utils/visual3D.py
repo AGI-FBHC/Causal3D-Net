@@ -4,6 +4,7 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: visual3D.py
 # @Project : Causal3D-Net
+import torch
 import numpy as np
 import plotly.graph_objects as go
 import os
@@ -96,10 +97,13 @@ def show_middle_slice(volume, save_name, title="", mask=None):
 
 
 
-def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None, alpha_gt=0.4, alpha_pred=0.4, save_path=None):
+def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None,
+                         alpha_gt=0.4, alpha_pred=0.4,
+                         save_path=None, compute_dice_fn=None):
     """
-    Visualize a middle slice of the 3D image with GT and predicted mask.
+    Visualize a slice of a 3D image with GT and prediction overlays.
     Red = GT, Blue = Prediction
+    Uses external Dice function if provided.
     """
     if image.ndim == 4:
         image = image.squeeze(0)  # [D, H, W]
@@ -110,34 +114,51 @@ def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None, alpha_gt=0.4
 
     if slice_idx is None:
         slice_idx = image.shape[0] // 2
+    assert slice_idx < image.shape[0]
 
-    assert slice_idx < image.shape[0], f"slice_idx={slice_idx} exceeds image depth={image.shape[0]}"
-
-    # Slice extraction
+    # Slice
     img_slice = image[slice_idx].cpu().numpy()
-    img_slice = rescale_back(img_slice, 0, 1, -100, 240)  # 恢复回window值范围，若你希望保留原window信息
-    gt_slice = gt_mask[slice_idx].cpu().numpy()
-    pred_slice = pred_mask[slice_idx].cpu().numpy()
+    img_slice = rescale_back(img_slice, 0, 1, -100, 240)  # 恢复 CT 窗口范围
 
-    # Normalize image for display
+    gt_slice = gt_mask[slice_idx]  # tensor, [H, W]
+    pred_slice = pred_mask[slice_idx]  # tensor, [H, W]
+
+    # Dice computation (with compute_dice_score)
+    if compute_dice_fn is not None:
+        pred_tensor = torch.zeros((1, 2, 1, *pred_slice.shape), device=pred_slice.device)
+        pred_tensor[0, 0, 0] = (pred_slice == 0).float()  # 背景通道
+        pred_tensor[0, 1, 0] = (pred_slice > 0).float()   # 胰腺通道
+
+        gt_tensor = gt_slice.unsqueeze(0).unsqueeze(0).unsqueeze(0)  # [1, 1, 1, H, W]
+
+        dice = compute_dice_fn(pred_tensor, gt_tensor).item()
+    else:
+        # 简化 fallback
+        gt_np = gt_slice.cpu().numpy()
+        pred_np = pred_slice.cpu().numpy()
+        intersection = np.logical_and(gt_np > 0, pred_np > 0).sum()
+        union = (gt_np > 0).sum() + (pred_np > 0).sum()
+        dice = (2. * intersection / union) if union > 0 else 1.0
+
+    # Display normalization
     img_display = (img_slice - img_slice.min()) / (img_slice.max() - img_slice.min())
 
-    # 创建 RGBA 覆盖图层
+    # Overlay RGBA masks
     red_overlay = np.zeros((*gt_slice.shape, 4), dtype=np.float32)
     blue_overlay = np.zeros((*pred_slice.shape, 4), dtype=np.float32)
 
-    red_overlay[..., 0] = 1.0  # Red channel
-    red_overlay[..., 3] = (gt_slice > 0).astype(np.float32) * alpha_gt  # Alpha for GT
+    red_overlay[..., 0] = 1.0  # Red
+    red_overlay[..., 3] = (gt_slice.cpu().numpy() > 0).astype(np.float32) * alpha_gt
 
-    blue_overlay[..., 2] = 1.0  # Blue channel
-    blue_overlay[..., 3] = (pred_slice > 0).astype(np.float32) * alpha_pred  # Alpha for prediction
+    blue_overlay[..., 2] = 1.0  # Blue
+    blue_overlay[..., 3] = (pred_slice.cpu().numpy() > 0).astype(np.float32) * alpha_pred
 
-    # 绘图
+    # Plotting
     plt.figure(figsize=(10, 5))
     plt.imshow(img_display, cmap='gray')
     plt.imshow(red_overlay)
     plt.imshow(blue_overlay)
-    plt.title(f"Slice {slice_idx} | Red=GT, Blue=Prediction")
+    plt.title(f"Slice {slice_idx} | Dice: {dice:.4f} | Red=GT, Blue=Prediction")
     plt.axis('off')
     plt.tight_layout()
 
@@ -146,6 +167,8 @@ def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None, alpha_gt=0.4
         plt.close()
     else:
         plt.show()
+
+    return dice
 
 
 

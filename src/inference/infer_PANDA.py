@@ -56,7 +56,7 @@ def infer_stage_1(model_path, excel_path, cuda_id=4):
             if isinstance(y_sgs, list):  # 多尺度输出，取最高分辨率
                 y_sgs = y_sgs[0]
 
-            pred_mask = torch.argmax(torch.softmax(y_sgs, dim=1), dim=1)  # [B, D, H, W]
+            pred_mask = (torch.sigmoid(y_sgs) > 0.5).long().squeeze(1)
 
             # 把 batch 和 channel 维都去掉
             image_vol = x[0, 0].cpu()  # [D, H, W]
