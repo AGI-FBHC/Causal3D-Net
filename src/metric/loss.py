@@ -9,6 +9,53 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class MultiTaskLoss(nn.Module):
+    """
+    多任务损失函数，结合分割损失和分类损失
+
+    参数:
+        seg_weight: 分割损失的权重
+        cls_weight: 分类损失的权重
+        seg_loss_params: 分割损失函数的参数
+    """
+
+    def __init__(self, alpha=0.3, seg_loss_params=None):
+        super().__init__()
+        self.alpha = alpha
+        # 初始化分割损失函数
+        seg_loss_params = seg_loss_params or {}
+        self.seg_loss = MultiScaleSegmentationLoss(**seg_loss_params)
+
+        # 初始化分类损失函数
+        self.cls_loss = nn.CrossEntropyLoss()
+
+    def forward(self, seg_outputs, cls_output, seg_target, cls_target):
+        """
+        计算多任务损失
+
+        参数:
+            seg_outputs: 分割输出列表 (多尺度输出)
+            cls_output: 分类输出 (logits)
+            seg_target: 分割目标 (B, 1, D, H, W)
+            cls_target: 分类目标 (B)
+
+        返回:
+            total_loss: 总损失
+            seg_loss_value: 分割损失值
+            cls_loss_value: 分类损失值
+        """
+        # 计算分割损失
+        seg_loss_value = self.seg_loss(seg_outputs, seg_target)
+
+        # 计算分类损失
+        cls_loss_value = self.cls_loss(cls_output, cls_target)
+
+        # 加权组合
+        total_loss = seg_loss_value + self.alpha * cls_loss_value
+
+        return total_loss, seg_loss_value, cls_loss_value
+
+
 class MultiScaleSegmentationLoss(nn.Module):
     def __init__(self, scale_weights=None,
                  dice_weight=0.7,
