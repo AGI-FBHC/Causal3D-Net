@@ -133,16 +133,16 @@ def stage_1_train(train_excel,
             p_retain_stats=1.0,
             p=0.3
         ),
-        # tio.RandomAffine(
-        #     scales=(0.8, 1.2),
-        #     degrees=10,
-        #     isotropic=False,
-        #     p=0.5),
-        # tio.RandomElasticDeformation(
-        #     num_control_points=7,
-        #     max_displacement=3,
-        #     locked_borders=2,  # 避免边界扭曲过强
-        #     p=0.3)
+        tio.RandomAffine(
+            scales=(0.8, 1.2),
+            degrees=10,
+            isotropic=False,
+            p=0.5),
+        tio.RandomElasticDeformation(
+            num_control_points=7,
+            max_displacement=3,
+            locked_borders=2,
+            p=0.3)
     ])
 
     train_dataset = PCDataset(excel_path=train_excel,
@@ -240,7 +240,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--cuda", type=int,
-                        default=5,
+                        default=4,
                         required=False,
                         help="index of GPU to use")
     parser.add_argument("--outdir", type=str,
