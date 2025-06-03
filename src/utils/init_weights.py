@@ -32,7 +32,7 @@ def init_weights_kaiming(m):
 #     pass
 
 
-def load_shared_weights(stage2_model, weight_path="segnet_weights.pth", verbose=True):
+def load_shared_weights(stage2_model, weight_path="segnet_weights.pth", verbose=False):
     """加载共享权重到新模型"""
     # 加载预训练权重
     segnet_weights = torch.load(weight_path)

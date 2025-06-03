@@ -14,7 +14,25 @@ python ./src/preprocessing/resample_data.py --input /home/huangdn/Causal3D-Net/s
 python ./src/preprocessing/individual_confounders.py --input /home/huangdn/Causal3D-Net/src/dataset/radiomics_read.xlsx --output /home/huangdn/Causal3D-Net/src/data/radiomics_features.xlsx
 ```
 
+## Training
 
+### stage 1 training
 
+```linux
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_PANDA \
+    --train /home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/test_dataset.xlsx \
+    --outdir /home/huangdn/Causal3D-Net/src/results
+```
 
+### stage 2 training
+
+```
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_PANDA \
+    --train /home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/test_dataset.xlsx \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-01_05-55-00/best_model.pth
+```
 
