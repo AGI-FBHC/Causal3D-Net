@@ -246,9 +246,9 @@ def stage_1_train(train_excel,
 def stage_2_train(train_excel,
                   test_excel,
                   cuda_id=5,
-                  output_dir: str ="/home/huangdn/Causal3D-Net/src/results",
-                  model_weight: str ="/home/huangdn/Causal3D-Net/src/results/"
-                                     "2025-06-01_05-55-00/best_model.pth"):
+                  output_dir: str = "/home/huangdn/Causal3D-Net/src/results",
+                  model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
+                                      "2025-06-01_05-55-00/best_model.pth"):
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     current_dir = os.path.join(output_dir, current_time)
     os.makedirs(current_dir, exist_ok=True)
@@ -517,7 +517,6 @@ def stage_2_train(train_excel,
             save_dir=current_dir,
             filename=f'training_process.png'
         )
-        return
     pass
 
 
@@ -560,7 +559,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--cuda", type=int,
-                        default=0,
+                        default=4,
                         required=False,
                         help="index of GPU to use")
     parser.add_argument("--outdir", type=str,
@@ -568,7 +567,8 @@ if __name__ == '__main__':
                         required=False,
                         help="output directory")
     parser.add_argument("--weight", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/results/2025-06-01_05-55-00/best_model.pth",
+                        default="/home/huangdn/Causal3D-Net/src/results/"
+                                "2025-06-01_05-55-00/best_model.pth",
                         required=False,
                         help="stage 1 trained model weight")
     args = parser.parse_args()
