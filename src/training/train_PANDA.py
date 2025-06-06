@@ -269,13 +269,13 @@ def stage_2_train(train_excel,
     initial_lr_for_sgs = 1e-4
     initial_lr_for_cls = 1e-3
     weight_decay = 3e-5
-    num_epochs = 200
+    num_epochs = 50
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
     model = MultiTask3DCNN(mask_num=2, cls_num=2)
     model = load_shared_weights(model, weight_path=model_weight)
     model.to(device)
-    logging.info("✅ Stage 1 model weights loaded successfully.")
+    logging.info(f"✅ Stage 1 model weights {model_weight} loaded successfully.")
 
     cls_decoder_params = []
     other_params = []
@@ -298,7 +298,8 @@ def stage_2_train(train_excel,
         {'params': cls_decoder_params, 'lr': initial_lr_for_cls}
     ]
 
-    criterion = MultiTaskLoss()
+    # criterion = MultiTaskLoss()
+    cls_criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(param_groups, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
@@ -415,10 +416,13 @@ def stage_2_train(train_excel,
             optimizer.zero_grad()
 
             y_hat_sgs, y_hat_cls = model(x)
-            loss, _, _ = criterion(y_hat_sgs, y_hat_cls, y_sgs, y_cls)
-            loss.backward()
+            # loss, _, _ = criterion(y_hat_sgs, y_hat_cls, y_sgs, y_cls)
+            cls_loss = cls_criterion(y_hat_cls, y_cls)
+            # loss.backward()
+            cls_loss.backward()
             optimizer.step()
-            train_loss += loss.item()
+            # train_loss += loss.item()
+            train_loss += cls_loss.item()
 
             with torch.no_grad():
                 dice_score = compute_dice_score(y_hat_sgs[0], y_sgs)
@@ -454,7 +458,8 @@ def stage_2_train(train_excel,
                 x, y_sgs, y_cls = x.to(device), y_sgs.to(device), y_cls.to(device)
 
                 y_hat_sgs, y_hat_cls = model(x)
-                loss, _, _ = criterion(y_hat_sgs, y_hat_cls, y_sgs, y_cls)
+                # loss, _, _ = criterion(y_hat_sgs, y_hat_cls, y_sgs, y_cls)
+                loss = cls_criterion(y_hat_cls, y_cls)
                 test_loss += loss.item()
 
                 dice_score = compute_dice_score(y_hat_sgs[0], y_sgs)
@@ -559,7 +564,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--cuda", type=int,
-                        default=4,
+                        default=1,
                         required=False,
                         help="index of GPU to use")
     parser.add_argument("--outdir", type=str,

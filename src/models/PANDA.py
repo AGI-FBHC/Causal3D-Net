@@ -126,7 +126,7 @@ class ClassifierDecoder(nn.Module):
     def __init__(self,
                  class_num: int = 2,
                  input_feature_list: List[int] = None,
-                 middle_feature_dim: int = 64,
+                 middle_feature_dim: int = 8,
                  ):
         super().__init__()
         input_feature_list = [320, 256, 128, 64, 32] \
@@ -168,10 +168,10 @@ class ClassifierDecoder(nn.Module):
 
         # 最终分类层（融合所有层级特征）
         self.final_classifier = nn.Sequential(
-            nn.Linear(64 * 5, 128),  # 融合特征维度64 * 5=320
+            nn.Linear(middle_feature_dim * 5, middle_feature_dim),  # 融合特征维度64 * 5=320
             nn.LeakyReLU(0.01),
             # nn.Dropout(0.5),
-            nn.Linear(128, class_num)
+            nn.Linear(middle_feature_dim, class_num)
         )
 
     def forward(self, classify_outputs: List[torch.Tensor]):
