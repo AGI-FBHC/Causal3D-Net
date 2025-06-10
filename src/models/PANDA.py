@@ -138,39 +138,44 @@ class ClassifierDecoder(nn.Module):
                 nn.AdaptiveMaxPool3d(1),  # [B,320,1,1,1]
                 nn.Flatten(),  # [B,320]
                 nn.Linear(input_feature_list[0], middle_feature_dim),  # 降维到64
-                nn.LeakyReLU(0.01, inplace=True)  # 1/5.5 备选
+                nn.LeakyReLU(0.01, inplace=True),  # 1/5.5 备选
+                nn.Dropout(0.5),
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,256,1,1,1]
                 nn.Flatten(),
                 nn.Linear(input_feature_list[1], middle_feature_dim),
-                nn.LeakyReLU(0.01, inplace=True)
+                nn.LeakyReLU(0.01, inplace=True),
+                nn.Dropout(0.5),
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,128,1,1,1]
                 nn.Flatten(),
                 nn.Linear(input_feature_list[2], middle_feature_dim),
-                nn.LeakyReLU(0.01, inplace=True)
+                nn.LeakyReLU(0.01, inplace=True),
+                nn.Dropout(0.5),
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,64,1,1,1]
                 nn.Flatten(),
                 nn.Linear(input_feature_list[3], middle_feature_dim),
-                nn.LeakyReLU(0.01, inplace=True)
+                nn.LeakyReLU(0.01, inplace=True),
+                nn.Dropout(0.5),
             ),
             nn.Sequential(
                 nn.AdaptiveMaxPool3d(1),  # [B,32,1,1,1]
                 nn.Flatten(),
                 nn.Linear(input_feature_list[4], middle_feature_dim),
-                nn.LeakyReLU(0.01, inplace=True)
+                nn.LeakyReLU(0.01, inplace=True),
+                nn.Dropout(0.5),
             )
         ])
 
         # 最终分类层（融合所有层级特征）
         self.final_classifier = nn.Sequential(
-            nn.Linear(middle_feature_dim * 5, middle_feature_dim),  # 融合特征维度64 * 5=320
+            nn.Linear(middle_feature_dim * 5, middle_feature_dim),
             nn.LeakyReLU(0.01),
-            # nn.Dropout(0.5),
+            nn.Dropout(0.5),
             nn.Linear(middle_feature_dim, class_num)
         )
 

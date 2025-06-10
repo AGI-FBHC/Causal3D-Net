@@ -171,5 +171,13 @@ def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None,
     return dice
 
 
+def save_slices(image3d, out_dir, prefix):
+    for d in range(image3d.shape[0]):
+        plt.figure(figsize=(4, 4))
+        plt.imshow(image3d[d, :, :], cmap='gray', origin='lower')
+        plt.axis('off')
+        slice_path = os.path.join(out_dir, f"{prefix}_slice_{d:03d}.png")
+        plt.savefig(slice_path, bbox_inches='tight', pad_inches=0)
+        plt.close()
 
 
