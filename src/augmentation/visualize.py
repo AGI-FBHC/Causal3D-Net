@@ -602,6 +602,6 @@ def show_RandomSwap(excel_path="", save_dir=None, idx=0):
 if __name__ == '__main__':
     sdir = "/home/huangdn/Causal3D-Net/src/augmentation/visualize_results"
     epath = "/home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx"
-    show_RandomSwap(excel_path=epath, save_dir=sdir)
+    show_RandomAffine(excel_path=epath, save_dir=sdir)
 
     pass

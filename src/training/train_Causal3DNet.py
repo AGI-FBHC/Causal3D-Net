@@ -70,7 +70,7 @@ def train_seg(train_excel,
     batch_size = 4
     initial_lr = 1e-2
     weight_decay = 3e-5
-    num_epochs = 200
+    num_epochs = 50
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
     model = SegNet(mask_num=2)
@@ -246,5 +246,28 @@ def train_seg(train_excel,
 
 
 if __name__ == '__main__':
-
+    parser = argparse.ArgumentParser(description="Segmentation training")
+    parser.add_argument("--train", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx",
+                        # required=True,
+                        help="path to training dataset")
+    parser.add_argument("--test", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/dataset/test_dataset.xlsx",
+                        # required=True,
+                        help="path to testing dataset")
+    parser.add_argument("--cuda", type=int,
+                        default=5,
+                        required=False,
+                        help="index of GPU to use")
+    parser.add_argument("--outdir", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/results",
+                        required=False,
+                        help="output directory")
+    args = parser.parse_args()
+    train_seg(
+        train_excel=args.train,
+        test_excel=args.test,
+        cuda_id=args.cuda,
+        output_dir=args.outdir,
+    )
     pass
