@@ -152,6 +152,12 @@ def train_seg(train_excel,
             max_displacement=3,
             locked_borders=2,
             p=0.3
+        ),
+        tio.RandomElasticDeformation(
+            num_control_points=9,
+            max_displacement=5,
+            locked_borders=2,
+            p=0.3
         )
     ])
 

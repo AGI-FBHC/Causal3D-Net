@@ -365,15 +365,14 @@ def show_RandomElasticDeformation(excel_path="", save_dir=None, idx=0):
     os.makedirs(os.path.join(save_path, "transformed"), exist_ok=True)
 
     base_transform = tio.Compose([
-        Windowing(window_center=70, window_width=340),
+        Windowing(window_center=70, window_width=540),
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.Resize((40, 160, 256)),
     ])
     transform = tio.Compose([
         tio.RandomElasticDeformation(
-            num_control_points=7,
-            max_displacement=3,
-            locked_borders=2,
+            num_control_points=9,
+            max_displacement=5,
             p=1)
     ])
     transform = tio.Compose([
@@ -602,6 +601,6 @@ def show_RandomSwap(excel_path="", save_dir=None, idx=0):
 if __name__ == '__main__':
     sdir = "/home/huangdn/Causal3D-Net/src/augmentation/visualize_results"
     epath = "/home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx"
-    show_RandomAffine(excel_path=epath, save_dir=sdir)
+    show_RandomElasticDeformation(excel_path=epath, save_dir=sdir)
 
     pass
