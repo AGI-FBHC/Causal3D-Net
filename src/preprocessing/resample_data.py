@@ -192,9 +192,17 @@ def resample_data(excel_path, out_path, overwrite, resample_num, log_path):
                 shutil.copy(mask_path, new_mask_path) if not mask_continue else None
                 logging.info(f"{new_mask_path} completed.")
                 continue
-            resample_z_direction(nii_path=image_path, is_mask=False, output_path=new_image_path, spacing=z_spacing) if not image_continue else None
+            resample_z_direction(nii_path=image_path,
+                                 is_mask=False,
+                                 output_path=new_image_path,
+                                 spacing=z_spacing) \
+                if not image_continue else None
             logging.info(f"{new_image_path} completed.")
-            resample_z_direction(nii_path=mask_path, is_mask=True, output_path=new_mask_path, spacing=z_spacing) if not mask_continue else None
+            resample_z_direction(nii_path=mask_path,
+                                 is_mask=True,
+                                 output_path=new_mask_path,
+                                 spacing=z_spacing) \
+                if not mask_continue else None
             logging.info(f"{new_mask_path} completed.")
             pass
     #     if index == 1:

@@ -5,7 +5,7 @@
 ### resample data
 
 ```linux
-python ./src/preprocessing/resample_data.py --input /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx --outdir /home/huangdn/Causal3D-Net/src/data
+python ./src/preprocessing/resample_data.py --input /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx --outdir /home/huangdn/Causal3D-Net/src/dataset
 ```
 
 ### extract radiomics features
