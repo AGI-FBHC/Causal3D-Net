@@ -2,16 +2,22 @@
 
 ## Preprocessing
 
-### resample data
+### crop data
 
 ```linux
-python ./src/preprocessing/resample_data.py --input /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx --outdir /home/huangdn/Causal3D-Net/src/dataset
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.ROI_data \
+	--input /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx \
+	--outdir /home/huangdn/Causal3D-Net/src/dataset \
+	--process_num 6
 ```
 
 ### extract radiomics features
 
 ```linux
-python ./src/preprocessing/individual_confounders.py --input /home/huangdn/Causal3D-Net/src/dataset/radiomics_read.xlsx --output /home/huangdn/Causal3D-Net/src/data/radiomics_features.xlsx
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.extract_radiomics \
+	--input /home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx \
+	--output /home/huangdn/Causal3D-Net/src/dataset/radiomics_features.xlsx \
+	--process_num 4
 ```
 
 ## Training

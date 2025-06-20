@@ -191,4 +191,5 @@ Icon
 *.dcm
 
 *.csv
+**/feature_distribution_combined/
 

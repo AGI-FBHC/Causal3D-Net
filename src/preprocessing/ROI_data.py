@@ -41,7 +41,7 @@ def process_single_case(index, row):
 
 
 def crop_data(excel_path, save_path, num_workers=4):
-    roi_data_finger_save_path = os.path.join(save_path, "roi_data_finger.xlsx")
+    roi_data_finger_save_path = os.path.join(save_path, "dataset_for_roi.xlsx")
     dataset_excel = pd.read_excel(excel_path)
 
     futures = []
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Crop images and masks")
     parser.add_argument(
         "--input", type=str,
-        default="/home/huangdn/Causal3D-Net/src/dataset/data_finger.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx",
         # required=True,
         help="Path to excel file containing images and masks.",
     )

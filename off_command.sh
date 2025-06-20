@@ -1,7 +1,8 @@
 #!/bin/sh
 
 
-python ./src/preprocessing/resample_data.py \
-  --input /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx \
-  --outdir /home/huangdn/Causal3D-Net/src/dataset
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.ROI_data \
+	--input /home/huangdn/Causal3D-Net/src/dataset/add_data_finger.xlsx \
+	--outdir /home/huangdn/Causal3D-Net/src/dataset \
+	--process_num 4
 

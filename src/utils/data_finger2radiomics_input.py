@@ -8,10 +8,11 @@ import os
 import pandas as pd
 
 
-def change_excel_title():
-    data_finger_path = "/home/huangdn/Causal3D-Net/src/dataset/data_finger.xlsx"
-    radiomics_read_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_read.xlsx"
+def change_excel_title(is_expand=False):
+    data_finger_path = "/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx"
+    radiomics_read_path = "/home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx"
     df = pd.read_excel(data_finger_path)
+    df = df.loc[df["raw_data"], :] if not is_expand else df
     df = df[["image_path", "mask_path"]]
     df = df.rename(columns={"image_path": "Image",
                             "mask_path": "Mask"})
@@ -20,4 +21,4 @@ def change_excel_title():
 
 
 if __name__ == '__main__':
-    change_excel_title()
+    change_excel_title(True)

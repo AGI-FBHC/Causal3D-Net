@@ -60,7 +60,7 @@ def split_with_plan(excel_path, output_dir, is_expand=False, is_print=False):
     # center1: cancer0 取72，cancer1 取33
     private_c1 = private[private["center"] == "center1"]
     c1_0 = private_c1[private_c1["cancer"] == 0].sample(n=72, random_state=42)
-    c1_1 = private_c1[private_c1["cancer"] == 1].sample(n=33, random_state=42)
+    c1_1 = private_c1[private_c1["cancer"] == 1].sample(n=32, random_state=42)
     private_c1_test = pd.concat([c1_0, c1_1])
 
     # center4: 全部为test
@@ -94,8 +94,8 @@ def split_with_plan(excel_path, output_dir, is_expand=False, is_print=False):
     print(f"Train size: {len(train_df)}") if is_print else None
     print(f"Test size: {len(test_df)}") if is_print else None
 
-    train_save_path = os.path.join(output_dir, "train_dataset.xlsx")
-    test_save_path = os.path.join(output_dir, "test_dataset.xlsx")
+    train_save_path = os.path.join(output_dir, "dataset_for_train.xlsx")
+    test_save_path = os.path.join(output_dir, "dataset_for_test.xlsx")
     train_df.to_csv(train_save_path, index=False)
     test_df.to_csv(test_save_path, index=False)
     pass
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dataset splitting")
     parser.add_argument(
         "--input", type=str,
-        default="/home/huangdn/Causal3D-Net/src/dataset/roi_data_finger.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_roi.xlsx",
         help="Origin sorted images and masks Excel file path."
     )
     parser.add_argument(

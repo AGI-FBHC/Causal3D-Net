@@ -2,7 +2,7 @@
 # @Time    : 2025/4/14 21:25
 # @Author  : D.N. Huang
 # @Email   : CarlCypress@yeah.net
-# @FileName: individual_confounders.py
+# @FileName: extract_radiomics.py
 # @Project : Causal3D-Net
 import logging
 import radiomics
@@ -138,7 +138,7 @@ def extract_radiomics_features(excel_input_path, output, params, log_path, proce
     #     # it is 'joined' with the empty data frame.
     #     results = results.join(featureVector, how='outer')  # If feature extraction failed, results will be all NaN
     logger.info('Extraction complete, writing Excel')
-    results.T.to_excel(output, index=False, na_rep='NaN')
+    results.T.to_csv(output, index=False, na_rep='NaN')
     logger.info('Excel writing complete')
 
     pass
@@ -149,14 +149,14 @@ if __name__ == '__main__':
     parser.add_argument(
         "--input",
         type=str,
-        default="/home/huangdn/Causal3D-Net/src/dataset/radiomics_read.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx",
         # required=True,
         help="Input Excel file path."
     )
     parser.add_argument(
         "--output",
         type=str,
-        default="/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.csv",
         # required=True,
         help="Output Excel file path."
     )
