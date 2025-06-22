@@ -120,12 +120,14 @@ class ChannelAttentionDecoder(nn.Module):
     def __init__(self,
                  channel: int = 1920,
                  groups: int = 24,
+                 middle_num: int = 256,
                  class_num: int = 2,
                  eps=1e-5):
         super().__init__()
         self.eps = eps
         self.channel = channel
         self.groups = groups
+        self.middle_num = middle_num
         self.perc = channel // groups
         self.cfc1 = torch.nn.Parameter(torch.Tensor(groups, 2))
         self.cfc1.data.fill_(1e-5)
@@ -137,7 +139,12 @@ class ChannelAttentionDecoder(nn.Module):
         self.softmax1 = nn.Softmax(dim=1)
         self.softmax2 = nn.Softmax(dim=1)
 
-        self.classify = nn.Linear(self.channel, class_num)
+        # self.classify = nn.Linear(self.channel, class_num)
+        self.classify = nn.Sequential(
+            nn.Linear(self.channel, self.middle_num),
+            nn.ReLU(),
+            nn.Linear(self.middle_num, class_num)
+        )
 
     def forward(self, enc_x: List[torch.Tensor], dec_x: List[torch.Tensor]):
         all_feats = enc_x + dec_x  # List of tensors with shape [B, C, D, H, W]

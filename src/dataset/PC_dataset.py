@@ -18,24 +18,19 @@ import torchio as tio
 class PCDataset(Dataset):
     def __init__(self, excel_path,
                  transform=None,
-                 is_expand=False,
                  use_mask=False,
                  return_type=0):
         """
         :param excel_path:
         :param transform:
-        :param is_expand:
         :param use_mask:
-        :param return_type: `0` 用于仅分类, `1` 用于仅分割, `2` 用于多任务.
+        :param return_type: `0` 用于仅分类, `1` 用于仅分割...
         """
         super().__init__()
         self.df = pd.read_excel(excel_path)
         self.transform = transform
-        self.is_expand = is_expand
         self.use_mask = use_mask
         self.return_type = return_type
-        if not self.is_expand:
-            self.df = self.df.loc[self.df["raw_data"], :]
 
     def __len__(self):
         return self.df.shape[0]
@@ -48,6 +43,8 @@ class PCDataset(Dataset):
         image_path = row["image_path"]
         mask_path = row["mask_path"]
         cls_label = row["cancer"]
+        center_type = row["center_type"]
+        cluster = row["cluster"]
 
         image_array = np.load(image_path)
         mask_array = np.load(mask_path)
@@ -78,6 +75,10 @@ class PCDataset(Dataset):
             return X, msk_label
         elif self.return_type == 2:
             return X, msk_label, cls_label
+        elif self.return_type == 3:
+            return X, center_type, cluster
+        elif self.return_type == 4:
+            return X, cls_label, msk_label, center_type, cluster
 
 
 if __name__ == '__main__':

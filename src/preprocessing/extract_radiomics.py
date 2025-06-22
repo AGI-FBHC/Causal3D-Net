@@ -137,9 +137,9 @@ def extract_radiomics_features(excel_input_path, output, params, log_path, proce
     #     # calculated for previous cases. This also ensures we don't end up with an empty frame, as for the first patient
     #     # it is 'joined' with the empty data frame.
     #     results = results.join(featureVector, how='outer')  # If feature extraction failed, results will be all NaN
-    logger.info('Extraction complete, writing Excel')
+    logger.info('Extraction complete, writing CSV')
     results.T.to_csv(output, index=False, na_rep='NaN')
-    logger.info('Excel writing complete')
+    logger.info('CSV writing complete')
 
     pass
 

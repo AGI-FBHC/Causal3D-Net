@@ -25,7 +25,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 from src.dataset.PC_dataset import PCDataset
-from src.models.PANDA import SegNet, MultiTask3DCNN
+from src.models.Causal3DNet import SegNet, Causal3DNet
 from src.augmentation.window import Windowing
 from src.augmentation.brightness import MultiplicativeBrightnessTransform
 from src.augmentation.contrast import ContrastTransform
@@ -251,14 +251,72 @@ def train_seg(train_excel,
         )
 
 
+def train_Causal3DNet(train_excel,
+                      test_excel,
+                      cuda_id=5,
+                      output_dir: str = "/home/huangdn/Causal3D-Net/src/results",
+                      model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
+                                          "2025-06-21_06-49-30/last_model.pth"):
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    current_dir = os.path.join(output_dir, current_time)
+    os.makedirs(current_dir, exist_ok=True)
+    log_filename = os.path.join(current_dir, "train.log")
+    best_model_save_path = os.path.join(current_dir, "best_model.pth")
+    last_model_save_path = os.path.join(current_dir, "last_model.pth")
+    logging.basicConfig(
+        filename=log_filename,
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        filemode='w'
+    )
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger().addHandler(console)
+
+    batch_size = 4
+    initial_lr_for_sgs = 1e-4
+    initial_lr_for_cls = 1e-3
+    weight_decay = 3e-5
+    num_epochs = 50
+    device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
+    pass
+
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Segmentation training")
+
+    # parser = argparse.ArgumentParser(description="Segmentation training")
+    # parser.add_argument("--train", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+    #                     # required=True,
+    #                     help="path to training dataset")
+    # parser.add_argument("--test", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+    #                     # required=True,
+    #                     help="path to testing dataset")
+    # parser.add_argument("--cuda", type=int,
+    #                     default=5,
+    #                     required=False,
+    #                     help="index of GPU to use")
+    # parser.add_argument("--outdir", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results",
+    #                     required=False,
+    #                     help="output directory")
+    # args = parser.parse_args()
+    # train_seg(
+    #     train_excel=args.train,
+    #     test_excel=args.test,
+    #     cuda_id=args.cuda,
+    #     output_dir=args.outdir
+    # )
+
+    parser = argparse.ArgumentParser(description="Causal 3D Net training")
     parser.add_argument("--train", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/train_dataset.xlsx",
+                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
                         # required=True,
                         help="path to training dataset")
     parser.add_argument("--test", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/test_dataset.xlsx",
+                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--cuda", type=int,
@@ -269,11 +327,17 @@ if __name__ == '__main__':
                         default="/home/huangdn/Causal3D-Net/src/results",
                         required=False,
                         help="output directory")
+    parser.add_argument("--weight", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/results/"
+                                "2025-06-21_06-49-30/best_model.pth",
+                        required=False,
+                        help="segmentation trained model weight")
     args = parser.parse_args()
-    train_seg(
+    train_Causal3DNet(
         train_excel=args.train,
         test_excel=args.test,
         cuda_id=args.cuda,
         output_dir=args.outdir,
+        model_weight=args.weight,
     )
     pass
