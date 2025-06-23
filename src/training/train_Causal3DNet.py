@@ -274,11 +274,136 @@ def train_Causal3DNet(train_excel,
     logging.getLogger().addHandler(console)
 
     batch_size = 4
-    initial_lr_for_sgs = 1e-4
-    initial_lr_for_cls = 1e-3
+    initial_lr = 1e-3
     weight_decay = 3e-5
     num_epochs = 50
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
+
+    model_for_individual = Causal3DNet()
+    model_for_center = Causal3DNet()
+    model_for_classify = Causal3DNet()
+    model_for_individual = load_shared_weights(model_for_individual, model_weight)
+    model_for_center = load_shared_weights(model_for_center, model_weight)
+    model_for_classify = load_shared_weights(model_for_classify, model_weight)
+
+    model_for_individual.to(device)
+    model_for_center.to(device)
+    model_for_classify.to(device)
+
+    pre_transform = tio.Compose([
+        Windowing(window_center=70, window_width=340),
+        tio.RescaleIntensity(out_min_max=(0, 1)),
+        tio.Resize((40, 160, 256)),
+    ])
+    aug_transform = tio.Compose([
+        GaussianNoiseTransform(
+            noise_variance=(0, 0.1),
+            p_per_channel=1.0,
+            synchronize_channels=True,
+            p=0.1
+        ),
+        GaussianBlurTransform(
+            blur_sigma=(0.5, 1.0),
+            synchronize_channels=False,
+            synchronize_axes=False,
+            p_per_channel=0.5,
+            p=0.2
+        ),
+        MultiplicativeBrightnessTransform(
+            multiplier_range=(0.75, 1.25),
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p=0.15
+        ),
+        ContrastTransform(
+            contrast_range=(0.75, 1.25),
+            preserve_range=True,
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p=0.15
+        ),
+        SimulateLowResolutionTransform(
+            scale=(0.5, 1.0),
+            synchronize_channels=False,
+            synchronize_axes=True,
+            ignore_axes=(0,),
+            allowed_channels=None,
+            p_per_channel=0.5,
+            p=0.25
+        ),
+        GammaTransform(
+            gamma=(0.7, 1.5),
+            p_invert_image=1.0,
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p_retain_stats=1.0,
+            p=0.1
+        ),
+        GammaTransform(
+            gamma=(0.7, 1.5),
+            p_invert_image=1.0,
+            synchronize_channels=False,
+            p_per_channel=1.0,
+            p_retain_stats=1.0,
+            p=0.3
+        ),
+        tio.RandomAffine(
+            scales=(0.8, 1.2),
+            degrees=10,
+            isotropic=False,
+            p=0.5
+        ),
+        tio.RandomElasticDeformation(
+            num_control_points=7,
+            max_displacement=3,
+            locked_borders=2,
+            p=0.3
+        ),
+        tio.RandomElasticDeformation(
+            num_control_points=9,
+            max_displacement=5,
+            locked_borders=2,
+            p=0.3
+        )
+    ])
+
+    train_transform = tio.Compose([
+        *pre_transform.transforms,  # unpack preprocessing
+        *aug_transform.transforms  # unpack augmentation
+    ])
+    test_transform = pre_transform
+
+    train_dataset = PCDataset(excel_path=train_excel,
+                              transform=train_transform,
+                              return_type=4)
+    test_dataset = PCDataset(excel_path=test_excel,
+                             transform=test_transform,
+                             return_type=4)
+    train_loader = DataLoader(train_dataset,
+                              batch_size=batch_size,
+                              shuffle=True,
+                              num_workers=4,
+                              pin_memory=True)
+    test_loader = DataLoader(test_dataset,
+                             batch_size=batch_size,
+                             shuffle=False,
+                             num_workers=4,
+                             pin_memory=True)
+
+    for epoch in tqdm(range(num_epochs)):
+        model_for_individual.train()
+        model_for_center.train()
+        model_for_classify.train()
+
+        for x, y_cls, y_msk, center, cluster in train_loader:
+            # 根据 cluster 对 model_for_individual 使用对比学习框架.
+
+            # 根据 center 对 model_for_center 使用对比学习框架.
+
+            # 根据 y_cls 对 model_for_classify 使用交叉熵反向传播.
+
+
+            pass
     pass
 
 

@@ -7,7 +7,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from typing import Union, Type, List, Tuple
+
+from src.utils.init_weights import init_weights_kaiming
 
 
 class ConvDropoutNormReLU(nn.Module):
@@ -120,14 +123,13 @@ class ChannelAttentionDecoder(nn.Module):
     def __init__(self,
                  channel: int = 1920,
                  groups: int = 24,
-                 middle_num: int = 256,
-                 class_num: int = 2,
+                 feature_num: int = 256,
                  eps=1e-5):
         super().__init__()
         self.eps = eps
         self.channel = channel
         self.groups = groups
-        self.middle_num = middle_num
+        self.feature_num = feature_num
         self.perc = channel // groups
         self.cfc1 = torch.nn.Parameter(torch.Tensor(groups, 2))
         self.cfc1.data.fill_(1e-5)
@@ -139,12 +141,8 @@ class ChannelAttentionDecoder(nn.Module):
         self.softmax1 = nn.Softmax(dim=1)
         self.softmax2 = nn.Softmax(dim=1)
 
-        # self.classify = nn.Linear(self.channel, class_num)
-        self.classify = nn.Sequential(
-            nn.Linear(self.channel, self.middle_num),
-            nn.ReLU(),
-            nn.Linear(self.middle_num, class_num)
-        )
+        self.fc = nn.Sequential(nn.Linear(self.channel, self.feature_num),
+                                nn.ReLU())
 
     def forward(self, enc_x: List[torch.Tensor], dec_x: List[torch.Tensor]):
         all_feats = enc_x + dec_x  # List of tensors with shape [B, C, D, H, W]
@@ -171,7 +169,7 @@ class ChannelAttentionDecoder(nn.Module):
         out = out + res
         out = out.view(N, C)
 
-        return self.classify(out)
+        return self.fc(out)
 
 
 class SegNet(nn.Module):
@@ -186,27 +184,56 @@ class SegNet(nn.Module):
 
 
 class Causal3DNet(nn.Module):
-    def __init__(self, class_num: int = 2, groups: int = 24):
+    def __init__(self, mask_num: int = 2,
+                 class_num: int = 2,
+                 feature_num: int = 256,
+                 groups: int = 24):
         super().__init__()
         self.encoder = PlainConvEncoder()
-        self.seg_decoder = UNetDecoder(mask_num=2)
-        self.cls_decoder = ChannelAttentionDecoder(channel=1920,
-                                                   groups=groups,
-                                                   class_num=class_num)
+        self.seg_decoder = UNetDecoder(mask_num=mask_num)
+        self.individual_stream = ChannelAttentionDecoder(channel=1920,
+                                                         groups=groups,
+                                                         feature_num=feature_num)
+        self.cls_stream = ChannelAttentionDecoder(channel=1920,
+                                                  groups=groups,
+                                                  feature_num=feature_num)
+        self.center_stream = ChannelAttentionDecoder(channel=1920,
+                                                     groups=groups,
+                                                     feature_num=feature_num)
+
+        self.indi_confounder = nn.Linear(feature_num, class_num)
+        self.cent_confounder = nn.Linear(feature_num, class_num)
+
+        self.indi_cls = nn.Linear(feature_num * 2, class_num)
+        self.main_cls = nn.Linear(feature_num, class_num)
+        self.cent_cls = nn.Linear(feature_num * 2, class_num)
 
     def forward(self, x):
         skip = self.encoder(x)
-        seg_out, cls_features = self.seg_decoder(skip)
-        return seg_out, self.cls_decoder(skip, cls_features)
+        _, shared_features = self.seg_decoder(skip)
+
+        individual_confounder = self.individual_stream(skip, shared_features)
+        classify_feature = self.cls_stream(skip, shared_features)
+        center_confounder = self.center_stream(skip, shared_features)
+
+        y_indc = self.indi_confounder(individual_confounder)
+        y_cenc = self.cent_confounder(center_confounder)
+
+        y_indi = self.indi_cls(torch.cat([classify_feature, individual_confounder], dim=1))
+        y_main = self.main_cls(classify_feature)
+        y_cent = self.cent_cls(torch.cat([classify_feature, center_confounder], dim=1))
+
+        return ((y_indi, y_main, y_cent),
+                (individual_confounder, classify_feature, center_confounder))
 
 
 if __name__ == "__main__":
     x = torch.randn(4, 1, 40, 160, 256)
-    model = Causal3DNet(class_num=2)
-    y_seg, y_cls = model(x)
-    for y in y_seg:
-        print(y.shape)
-    print("="*20)
-    print(y_cls.shape)
+    model = Causal3DNet()
+    y, ind, cls, cen = model(x)
+    print(y.shape)
+    print(ind.shape)
+    print(cls.shape)
+    print(cen.shape)
 
 

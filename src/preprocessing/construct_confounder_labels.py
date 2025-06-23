@@ -12,11 +12,12 @@ import pandas as pd
 from scipy.stats import spearmanr
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import KMeans
 
 
 def extract_center_type(path):
-    match = re.search(r'Center(\d+).*_(public|private)', path)
+    match = re.search(r"Center(\d+).*_(public|private)", path)
     if match:
         prefix = 'u' if match.group(2) == 'public' else 'r'
         return prefix + match.group(1)
@@ -29,7 +30,9 @@ def construct(dataset_file_path,
     dataset = pd.read_excel(dataset_file_path)
     feature = pd.read_csv(feature_file_path)
 
-    dataset["center_type"] = dataset["image_path"].apply(extract_center_type)
+    dataset["center"] = dataset["image_path"].apply(extract_center_type)
+    le = LabelEncoder()
+    dataset["center"] = le.fit_transform(dataset["center"])
 
     feature = feature.iloc[:, 39:]
     label = dataset[["cancer"]].values.ravel()

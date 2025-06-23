@@ -43,7 +43,7 @@ class PCDataset(Dataset):
         image_path = row["image_path"]
         mask_path = row["mask_path"]
         cls_label = row["cancer"]
-        center_type = row["center_type"]
+        center = row["center"]
         cluster = row["cluster"]
 
         image_array = np.load(image_path)
@@ -76,9 +76,9 @@ class PCDataset(Dataset):
         elif self.return_type == 2:
             return X, msk_label, cls_label
         elif self.return_type == 3:
-            return X, center_type, cluster
+            return X, center, cluster
         elif self.return_type == 4:
-            return X, cls_label, msk_label, center_type, cluster
+            return X, cls_label, msk_label, center, cluster
 
 
 if __name__ == '__main__':
