@@ -14,7 +14,8 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import (accuracy_score,
                              precision_score,
                              recall_score,
-                             f1_score)
+                             f1_score,
+                             roc_auc_score)
 
 import time
 import logging
@@ -35,12 +36,15 @@ from src.augmentation.gaussian_noise import GaussianNoiseTransform
 from src.augmentation.low_resolution import SimulateLowResolutionTransform
 from src.lr_scheduler.linear_lr import linear_lr_lambda
 from src.utils.plot_metrics import (plot_loss_and_dice_metrics,
-                                    plot_segmentation_and_classify_metrics)
+                                    plot_segmentation_and_classify_metrics,
+                                    plot_training_metrics)
 from src.utils.init_weights import init_weights_kaiming, load_shared_weights
 from src.metric.loss import (DiceLoss,
                              MultiScaleSegmentationLoss,
                              compute_dice_score,
-                             MultiTaskLoss)
+                             MultiTaskLoss,
+                             OrthogonalLoss,
+                             SupervisedContrastiveLoss)
 
 import warnings
 
@@ -273,22 +277,30 @@ def train_Causal3DNet(train_excel,
     console.setLevel(logging.INFO)
     logging.getLogger().addHandler(console)
 
-    batch_size = 4
+    batch_size = 8
     initial_lr = 1e-3
     weight_decay = 3e-5
     num_epochs = 50
+    mid_1_epochs = 10
+    mid_2_epochs = 20
+    lambda1, lambda2 = 1, 1
+    mid_1_transition_epochs = 5
+    mid_2_transition_epochs = 5
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
-    model_for_individual = Causal3DNet()
-    model_for_center = Causal3DNet()
-    model_for_classify = Causal3DNet()
-    model_for_individual = load_shared_weights(model_for_individual, model_weight)
-    model_for_center = load_shared_weights(model_for_center, model_weight)
-    model_for_classify = load_shared_weights(model_for_classify, model_weight)
+    model = Causal3DNet()
+    model = load_shared_weights(model, model_weight)
+    model.to(device)
 
-    model_for_individual.to(device)
-    model_for_center.to(device)
-    model_for_classify.to(device)
+    cls_criterion = nn.CrossEntropyLoss()
+    suc_criterion = SupervisedContrastiveLoss()
+    ort_criterion = OrthogonalLoss()
+
+    optimizer = optim.AdamW(model.parameters(), lr=initial_lr, weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda=linear_lr_lambda(num_epochs)
+    )
 
     pre_transform = tio.Compose([
         Windowing(window_center=70, window_width=340),
@@ -354,14 +366,14 @@ def train_Causal3DNet(train_excel,
             p=0.5
         ),
         tio.RandomElasticDeformation(
-            num_control_points=7,
-            max_displacement=3,
+            num_control_points=11,
+            max_displacement=2,
             locked_borders=2,
             p=0.3
         ),
         tio.RandomElasticDeformation(
-            num_control_points=9,
-            max_displacement=5,
+            num_control_points=13,
+            max_displacement=3,
             locked_borders=2,
             p=0.3
         )
@@ -390,20 +402,149 @@ def train_Causal3DNet(train_excel,
                              num_workers=4,
                              pin_memory=True)
 
+    all_train_losses = []
+    all_train_cls_losses, all_test_cls_losses = [], []
+    all_train_accs, all_test_accs = [], []
+    all_train_precisions, all_test_precisions = [], []
+    all_train_recalls, all_test_recalls = [], []
+    all_train_aucs, all_test_aucs = [], []
+
+    best_auc = .0
     for epoch in tqdm(range(num_epochs)):
-        model_for_individual.train()
-        model_for_center.train()
-        model_for_classify.train()
+        model.train()
 
-        for x, y_cls, y_msk, center, cluster in train_loader:
-            # 根据 cluster 对 model_for_individual 使用对比学习框架.
+        total_loss = 0
+        total_cls_loss = 0
+        train_preds = []
+        train_probs = []
+        train_targets = []
 
-            # 根据 center 对 model_for_center 使用对比学习框架.
+        for x, y_cls, _, center, cluster in train_loader:
+            x, y_cls, center, cluster = x.to(device), y_cls.to(device), center.to(device), cluster.to(device)
 
-            # 根据 y_cls 对 model_for_classify 使用交叉熵反向传播.
+            optimizer.zero_grad()
 
+            ((y_indi, y_main, y_cent),
+             (individual_confounder, classify_feature, center_confounder)) = model(x)
 
-            pass
+            l_c_main = cls_criterion(y_main, y_cls)
+
+            l_indi =  suc_criterion(individual_confounder, cluster)
+            l_cent = suc_criterion(center_confounder, center)
+
+            if epoch >= mid_1_epochs:
+                alpha1 = min(1.0, (epoch - mid_1_epochs + 1) / mid_1_transition_epochs)
+                l_o_im = ort_criterion(classify_feature, individual_confounder)
+                l_o_cm = ort_criterion(classify_feature, center_confounder)
+
+                if epoch >= mid_2_epochs:
+                    alpha2 = min(1.0, (epoch - mid_2_epochs + 1) / mid_2_transition_epochs)
+                    y_c_indi = cls_criterion(y_indi, y_cls)
+                    y_c_cent = cls_criterion(y_cent, y_cls)
+
+                    loss = l_c_main + lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm) + lambda2 * alpha2 * (y_c_indi + y_c_cent)
+                else:
+                    loss = l_c_main + lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm)
+            else:
+                loss = l_c_main + lambda1 * (l_indi + l_cent)
+
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+
+            total_loss += loss.item()
+            total_cls_loss += l_c_main.item()
+
+            probs = torch.softmax(y_main, dim=1)[:, 1].detach().cpu().numpy()
+            preds = (probs > 0.5).astype(int)
+            targets = y_cls.detach().cpu().numpy()
+
+            train_probs.extend(probs)
+            train_preds.extend(preds)
+            train_targets.extend(targets)
+
+        scheduler.step()
+
+        train_loss = total_loss / len(train_loader)
+        train_cls_loss = total_cls_loss / len(train_loader)
+        train_accuracy = accuracy_score(train_targets, train_preds)
+        train_recall = recall_score(train_targets, train_preds, zero_division=0)
+        train_precision = precision_score(train_targets, train_preds, zero_division=0)
+        train_auc = roc_auc_score(train_targets, train_probs)
+
+        model.eval()
+
+        total_test_cls_loss = 0
+        test_probs = []
+        test_preds = []
+        test_targets = []
+
+        with torch.no_grad():
+            for x, y_cls, _, _, _ in test_loader:
+                x, y_cls = x.to(device), y_cls.to(device)
+
+                ((_, y_main, _), _) = model(x)
+                l_c_main = cls_criterion(y_main, y_cls)
+                total_test_cls_loss += l_c_main.item()
+
+                probs = torch.softmax(y_main, dim=1)[:, 1].cpu().numpy()
+                preds = (probs > 0.5).astype(int)
+                targets = y_cls.cpu().numpy()
+
+                test_probs.extend(probs)
+                test_preds.extend(preds)
+                test_targets.extend(targets)
+
+        test_cls_loss = total_test_cls_loss / len(test_loader)
+        test_accuracy = accuracy_score(test_targets, test_preds)
+        test_precision = precision_score(test_targets, test_preds, zero_division=0)
+        test_recall = recall_score(test_targets, test_preds, zero_division=0)
+        test_auc = roc_auc_score(test_targets, test_probs)
+
+        all_train_losses.append(train_loss)
+        all_train_cls_losses.append(train_cls_loss)
+        all_train_accs.append(train_accuracy)
+        all_train_recalls.append(train_recall)
+        all_train_precisions.append(train_precision)
+        all_train_aucs.append(train_auc)
+        all_test_cls_losses.append(test_cls_loss)
+        all_test_accs.append(test_accuracy)
+        all_test_recalls.append(test_recall)
+        all_test_precisions.append(test_precision)
+        all_test_aucs.append(test_auc)
+
+        current_lr = optimizer.param_groups[0]['lr']
+
+        log_msg = (f"[Epoch {epoch + 1}/{num_epochs}, LR {current_lr}]\n"
+                   f"Train => Loss(all): {train_loss:.4f}, Loss(cls): {train_cls_loss:.4f}, "
+                   f"Acc: {train_accuracy:.4f}, Prec: {train_precision:.4f}, "
+                   f"Recall: {train_recall:.4f}, AUC: {train_auc:.4f}\n"
+                   f"Test  => Loss(cls): {test_cls_loss:.4f}, "
+                   f"Acc: {test_accuracy:.4f}, Prec: {test_precision:.4f}, "
+                   f"Recall: {test_recall:.4f}, AUC: {test_auc:.4f}")
+        logging.info(log_msg)
+
+        if test_auc > best_auc:
+            best_auc = test_auc
+            torch.save(model.state_dict(), best_model_save_path)
+            logging.info(f"Best model updated at epoch {epoch+1}, AUC: {best_auc:.4f}")
+
+        torch.save(model.state_dict(), last_model_save_path)
+
+        plot_training_metrics(
+            all_train_losses,
+            all_train_cls_losses,
+            all_test_cls_losses,
+            all_train_accs,
+            all_test_accs,
+            all_train_precisions,
+            all_test_precisions,
+            all_train_recalls,
+            all_test_recalls,
+            all_train_aucs,
+            all_test_aucs,
+            save_path=os.path.join(current_dir, "training_metrics.png"),
+        )
     pass
 
 

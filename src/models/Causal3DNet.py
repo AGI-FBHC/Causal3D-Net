@@ -201,12 +201,11 @@ class Causal3DNet(nn.Module):
                                                      groups=groups,
                                                      feature_num=feature_num)
 
-        self.indi_confounder = nn.Linear(feature_num, class_num)
-        self.cent_confounder = nn.Linear(feature_num, class_num)
-
         self.indi_cls = nn.Linear(feature_num * 2, class_num)
         self.main_cls = nn.Linear(feature_num, class_num)
         self.cent_cls = nn.Linear(feature_num * 2, class_num)
+
+        self.apply(init_weights_kaiming)
 
     def forward(self, x):
         skip = self.encoder(x)
@@ -215,9 +214,6 @@ class Causal3DNet(nn.Module):
         individual_confounder = self.individual_stream(skip, shared_features)
         classify_feature = self.cls_stream(skip, shared_features)
         center_confounder = self.center_stream(skip, shared_features)
-
-        y_indc = self.indi_confounder(individual_confounder)
-        y_cenc = self.cent_confounder(center_confounder)
 
         y_indi = self.indi_cls(torch.cat([classify_feature, individual_confounder], dim=1))
         y_main = self.main_cls(classify_feature)
@@ -230,10 +226,14 @@ class Causal3DNet(nn.Module):
 if __name__ == "__main__":
     x = torch.randn(4, 1, 40, 160, 256)
     model = Causal3DNet()
-    y, ind, cls, cen = model(x)
-    print(y.shape)
-    print(ind.shape)
-    print(cls.shape)
-    print(cen.shape)
+    ((y_i, y_m, y_c),
+     (individual, classify, center)) = model(x)
+
+    print(y_i.shape)
+    print(y_m.shape)
+    print(y_c.shape)
+    print(individual.shape)
+    print(classify.shape)
+    print(center.shape)
 
 

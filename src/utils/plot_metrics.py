@@ -156,6 +156,83 @@ def plot_segmentation_and_classify_metrics(
     plt.close()
 
 
+def plot_training_metrics(
+    all_train_losses,
+    all_train_cls_losses,
+    all_test_cls_losses,
+    all_train_accs,
+    all_test_accs,
+    all_train_precs,
+    all_test_precs,
+    all_train_recalls,
+    all_test_recalls,
+    all_train_aucs,
+    all_test_aucs,
+    save_path="training_metrics.png"
+):
+    epochs = list(range(1, len(all_train_losses) + 1))
+    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
+    axes = axes.flatten()
+
+    # 1. All loss
+    axes[0].plot(epochs, all_train_losses, label='Train Total Loss')
+    axes[0].set_title('1. Train Total Loss')
+    axes[0].set_xlabel('Epoch')
+    axes[0].set_ylabel('Loss')
+    axes[0].legend()
+    axes[0].grid(True)
+
+    # 2. Cls loss
+    axes[1].plot(epochs, all_train_cls_losses, label='Train Cls Loss')
+    axes[1].plot(epochs, all_test_cls_losses, label='Test Cls Loss')
+    axes[1].set_title('2. Classification Loss')
+    axes[1].set_xlabel('Epoch')
+    axes[1].set_ylabel('Loss')
+    axes[1].legend()
+    axes[1].grid(True)
+
+    # 3. Accuracy
+    axes[2].plot(epochs, all_train_accs, label='Train Accuracy')
+    axes[2].plot(epochs, all_test_accs, label='Test Accuracy')
+    axes[2].set_title('3. Accuracy')
+    axes[2].set_xlabel('Epoch')
+    axes[2].set_ylabel('Accuracy')
+    axes[2].legend()
+    axes[2].grid(True)
+
+    # 4. Recall
+    axes[3].plot(epochs, all_train_recalls, label='Train Recall')
+    axes[3].plot(epochs, all_test_recalls, label='Test Recall')
+    axes[3].set_title('4. Recall')
+    axes[3].set_xlabel('Epoch')
+    axes[3].set_ylabel('Recall')
+    axes[3].legend()
+    axes[3].grid(True)
+
+    # 5. Precision
+    axes[4].plot(epochs, all_train_precs, label='Train Precision')
+    axes[4].plot(epochs, all_test_precs, label='Test Precision')
+    axes[4].set_title('5. Precision')
+    axes[4].set_xlabel('Epoch')
+    axes[4].set_ylabel('Precision')
+    axes[4].legend()
+    axes[4].grid(True)
+
+    # 6. AUC
+    axes[5].plot(epochs, all_train_aucs, label='Train AUC')
+    axes[5].plot(epochs, all_test_aucs, label='Test AUC')
+    axes[5].set_title('6. AUC')
+    axes[5].set_xlabel('Epoch')
+    axes[5].set_ylabel('AUC')
+    axes[5].legend()
+    axes[5].grid(True)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=400)
+    plt.close()
+    print(f"📈 Training metrics saved to: {save_path}")
+
+
 if __name__ == '__main__':
     # 虚假数据生成
     num_epochs = 20

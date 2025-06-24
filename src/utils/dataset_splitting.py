@@ -52,45 +52,45 @@ def split_with_plan(excel_path, output_dir, is_print=False):
     all_data = pd.read_excel(excel_path)
 
     # 加入 center 和 source 列（假设你有这两个函数）
-    all_data["center"] = all_data["image_path"].apply(extract_center)
-    all_data["source"] = all_data["image_path"].apply(extract_source)
+    all_data["__temp_center"] = all_data["image_path"].apply(extract_center)
+    all_data["__temp_source"] = all_data["image_path"].apply(extract_source)
 
     # ==== Private Test ====
-    private = all_data[all_data["source"] == "private"]
+    private = all_data[all_data["__temp_source"] == "private"]
 
-    private_c1 = private[private["center"] == "center1"]
+    private_c1 = private[private["__temp_center"] == "center1"]
     c1_0 = private_c1[private_c1["cancer"] == 0].sample(n=72, random_state=42)
     c1_1 = private_c1[private_c1["cancer"] == 1].sample(n=32, random_state=42)
     private_c1_test = pd.concat([c1_0, c1_1])
 
-    private_c4_test = private[private["center"] == "center4"]
+    private_c4_test = private[private["__temp_center"] == "center4"]
 
     private_test = pd.concat([private_c1_test, private_c4_test])
     private_train = private.drop(private_test.index)
 
     # ==== Public Test ====
-    public = all_data[all_data["source"] == "public"]
+    public = all_data[all_data["__temp_source"] == "public"]
 
     # 先将所有用于个别采样的 center 数据单独处理，避免重复
     public_test_parts = []
 
     # center2 和 center11 全部进入 test（public_c_test）
     public_centers = ["center2", "center11", "center5", "center6", "center8"]
-    public_c_test = public[public["center"].isin(public_centers)]
+    public_c_test = public[public["__temp_center"].isin(public_centers)]
     public_test_parts.append(public_c_test)
 
     # center4: cancer 1 取 80
-    center4 = public[public["center"] == "center4"]
+    center4 = public[public["__temp_center"] == "center4"]
     public_4_test = center4[center4["cancer"] == 1].sample(n=80, random_state=42)
     public_test_parts.append(public_4_test)
 
     # center12: cancer 1 取 18
-    center12 = public[public["center"] == "center12"]
+    center12 = public[public["__temp_center"] == "center12"]
     public_12_test = center12[center12["cancer"] == 1].sample(n=18, random_state=42)
     public_test_parts.append(public_12_test)
 
     # center14: cancer 0 和 1 各取 17
-    center14 = public[public["center"] == "center14"]
+    center14 = public[public["__temp_center"] == "center14"]
     c14_0 = center14[center14["cancer"] == 0].sample(n=17, random_state=42)
     c14_1 = center14[center14["cancer"] == 1].sample(n=17, random_state=42)
     public_14_test = pd.concat([c14_0, c14_1])
@@ -115,8 +115,8 @@ def split_with_plan(excel_path, output_dir, is_print=False):
     # 建议保存为 .xlsx 或改函数
     train_save_path = os.path.join(output_dir, "dataset_for_train.xlsx")
     test_save_path = os.path.join(output_dir, "dataset_for_test.xlsx")
-    train_df = train_df.iloc[:, :-2]
-    test_df = test_df.iloc[:, :-2]
+    train_df = train_df.drop(columns=["__temp_center", "__temp_source"])
+    test_df = test_df.drop(columns=["__temp_center", "__temp_source"])
     train_df.to_excel(train_save_path, index=False)
     test_df.to_excel(test_save_path, index=False)
 

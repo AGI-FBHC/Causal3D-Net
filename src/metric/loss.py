@@ -196,30 +196,56 @@ def compute_dice_score(pred, target, threshold=0.5, smooth=1e-6):
         return dice_per_sample.mean()
 
 
+class OrthogonalLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, feat1, feat2):
+        """
+        feat1: [B, D]
+        feat2: [B, D]
+        """
+        feat1 = F.normalize(feat1, dim=1)
+        feat2 = F.normalize(feat2, dim=1)
+        dot_product = (feat1 * feat2).sum(dim=1)  # [B]
+        loss = torch.mean(dot_product ** 2)
+        return loss
+
+
+
+class SupervisedContrastiveLoss(nn.Module):
+    def __init__(self, temperature=0.07):
+        super().__init__()
+        self.temperature = temperature
+
+    def forward(self, features, labels):
+        """
+        features: [batch_size, feature_dim]
+        labels: [batch_size]
+        """
+        device = features.device
+        features = F.normalize(features, dim=1)  # 单位化
+
+        similarity_matrix = torch.matmul(features, features.T) / self.temperature  # [B, B]
+        labels = labels.contiguous().view(-1, 1)
+        mask = torch.eq(labels, labels.T).float().to(device)  # [B, B]，正样本掩码
+
+        logits_mask = torch.ones_like(mask) - torch.eye(mask.size(0)).to(device)
+        mask = mask * logits_mask
+
+        exp_logits = torch.exp(similarity_matrix) * logits_mask
+        log_prob = similarity_matrix - torch.log(exp_logits.sum(dim=1, keepdim=True) + 1e-10)
+
+        # 每个样本的正对比项平均
+        mean_log_prob_pos = (mask * log_prob).sum(1) / (mask.sum(1) + 1e-10)
+
+        # 损失项
+        loss = -mean_log_prob_pos.mean()
+        return loss
+
+
 if __name__ == '__main__':
-    # 模拟输入
-    B, C, D, H, W = 1, 2, 4, 4, 4
-    pred = torch.randn(B, C, D, H, W)
-    target = torch.randint(0, 2, (B, 1, D, H, W))
-    print(pred.shape)
-    print(target.shape)
-
-    # 单尺度 DiceLoss 测试
-    dice_with_bg = DiceLoss(True)(pred, target)
-    dice_without_bg = DiceLoss(False)(pred, target)
-    print("DiceLoss (with bg):", dice_with_bg.item())
-    print("DiceLoss (without bg):", dice_without_bg.item())
-
-    # 多尺度预测（5个不同分辨率的张量）
-    preds_list = [
-        torch.randn(B, C, 40, 160, 256),  # 原始
-        torch.randn(B, C, 40, 80, 128),
-        torch.randn(B, C, 40, 40, 64),
-        torch.randn(B, C, 20, 20, 32),
-        torch.randn(B, C, 10, 10, 16),
-    ]
-
-    # MultiScaleLoss 测试
-    multi_scale_loss_fn = MultiScaleSegmentationLoss()
-    multi_loss = multi_scale_loss_fn(preds_list, target)
-    print("Multi-scale Loss:", multi_loss.item())
+    feat1 = torch.tensor([[1., 0.], [0., 1.]])  # [2, 2]
+    feat2 = torch.tensor([[0., 1.], [1., 0.]])  # 完全正交
+    loss = OrthogonalLoss()(feat1, feat2)
+    print(loss.item())  # 输出应接近 0
