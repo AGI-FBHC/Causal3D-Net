@@ -4,6 +4,17 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: train_Causal3DNet.py
 # @Project : Causal3D-Net
+import time
+import logging
+import os, argparse
+import nibabel as nib
+from tqdm import tqdm
+from datetime import datetime
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import defaultdict
+
 import torch
 import torchio as tio
 import torch.nn as nn
@@ -17,14 +28,6 @@ from sklearn.metrics import (accuracy_score,
                              f1_score,
                              roc_auc_score)
 
-import time
-import logging
-import os, argparse
-import nibabel as nib
-from tqdm import tqdm
-from datetime import datetime
-import matplotlib.pyplot as plt
-
 from src.dataset.PC_dataset import PCDataset
 from src.models.Causal3DNet import SegNet, Causal3DNet
 from src.augmentation.window import Windowing
@@ -37,7 +40,8 @@ from src.augmentation.low_resolution import SimulateLowResolutionTransform
 from src.lr_scheduler.linear_lr import linear_lr_lambda
 from src.utils.plot_metrics import (plot_loss_and_dice_metrics,
                                     plot_segmentation_and_classify_metrics,
-                                    plot_training_metrics)
+                                    plot_training_metrics,
+                                    plot_group_metrics)
 from src.utils.init_weights import init_weights_kaiming, load_shared_weights
 from src.metric.loss import (DiceLoss,
                              MultiScaleSegmentationLoss,
@@ -264,6 +268,8 @@ def train_Causal3DNet(train_excel,
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     current_dir = os.path.join(output_dir, current_time)
     os.makedirs(current_dir, exist_ok=True)
+    diagnose_dir = os.path.join(output_dir, current_time, "diagnose")
+    os.makedirs(diagnose_dir, exist_ok=True)
     log_filename = os.path.join(current_dir, "train.log")
     best_model_save_path = os.path.join(current_dir, "best_model.pth")
     last_model_save_path = os.path.join(current_dir, "last_model.pth")
@@ -287,6 +293,13 @@ def train_Causal3DNet(train_excel,
     mid_1_transition_epochs = 5
     mid_2_transition_epochs = 5
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
+
+    center_groups = {
+        'internal_test_1': [0, 3],
+        'external_test_1': [6, 8],
+        'external_test_2': [15, 16, 17],
+        'uncertainty_test': [9, 10, 12],
+    }
 
     model = Causal3DNet()
     model = load_shared_weights(model, model_weight)
@@ -390,7 +403,7 @@ def train_Causal3DNet(train_excel,
                               return_type=4)
     test_dataset = PCDataset(excel_path=test_excel,
                              transform=test_transform,
-                             return_type=4)
+                             return_type=5)
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               shuffle=True,
@@ -408,6 +421,11 @@ def train_Causal3DNet(train_excel,
     all_train_precisions, all_test_precisions = [], []
     all_train_recalls, all_test_recalls = [], []
     all_train_aucs, all_test_aucs = [], []
+
+    group_accs = defaultdict(list)
+    group_recalls = defaultdict(list)
+    group_precisions = defaultdict(list)
+    group_aucs = defaultdict(list)
 
     best_auc = .0
     for epoch in tqdm(range(num_epochs)):
@@ -474,13 +492,18 @@ def train_Causal3DNet(train_excel,
 
         model.eval()
 
-        total_test_cls_loss = 0
+        group_metrics = defaultdict(dict)
+
+        test_filenames = []
         test_probs = []
         test_preds = []
         test_targets = []
+        test_centers = []
+
+        total_test_cls_loss = 0
 
         with torch.no_grad():
-            for x, y_cls, _, _, _ in test_loader:
+            for filename, x, y_cls, _, center, _ in test_loader:
                 x, y_cls = x.to(device), y_cls.to(device)
 
                 ((_, y_main, _), _) = model(x)
@@ -491,9 +514,11 @@ def train_Causal3DNet(train_excel,
                 preds = (probs > 0.5).astype(int)
                 targets = y_cls.cpu().numpy()
 
+                test_filenames.extend(filename)
                 test_probs.extend(probs)
                 test_preds.extend(preds)
                 test_targets.extend(targets)
+                test_centers.extend(center)
 
         test_cls_loss = total_test_cls_loss / len(test_loader)
         test_accuracy = accuracy_score(test_targets, test_preds)
@@ -513,6 +538,35 @@ def train_Causal3DNet(train_excel,
         all_test_precisions.append(test_precision)
         all_test_aucs.append(test_auc)
 
+        test_preds = np.array(test_preds)
+        test_probs = np.array(test_probs)
+        test_targets = np.array(test_targets)
+        test_centers = np.array(test_centers)
+
+        for group_name, group_centers in center_groups.items():
+            mask = np.isin(test_centers, group_centers)
+
+            group_y_true = test_targets[mask]
+            group_y_pred = test_preds[mask]
+            group_y_prob = test_probs[mask]
+
+            group_acc = accuracy_score(group_y_true, group_y_pred)
+            group_recall = recall_score(group_y_true, group_y_pred, zero_division=0)
+            group_precision = precision_score(group_y_true, group_y_pred, zero_division=0)
+            group_auc = roc_auc_score(group_y_true, group_y_prob) if len(np.unique(group_y_true)) > 1 else 0.5
+
+            group_metrics[group_name] = {
+                "acc": group_acc,
+                "recall": group_recall,
+                "precision": group_precision,
+                "auc": group_auc
+            }
+
+            group_accs[group_name].append(group_acc)
+            group_recalls[group_name].append(group_recall)
+            group_precisions[group_name].append(group_precision)
+            group_aucs[group_name].append(group_auc)
+
         current_lr = optimizer.param_groups[0]['lr']
 
         log_msg = (f"[Epoch {epoch + 1}/{num_epochs}, LR {current_lr}]\n"
@@ -527,7 +581,17 @@ def train_Causal3DNet(train_excel,
         if test_auc > best_auc:
             best_auc = test_auc
             torch.save(model.state_dict(), best_model_save_path)
-            logging.info(f"Best model updated at epoch {epoch+1}, AUC: {best_auc:.4f}")
+            logging.info(f"✅ Best model updated at epoch {epoch+1}, AUC: {best_auc:.4f}")
+
+            test_result = pd.DataFrame({
+                "filename": test_filenames,
+                "center_id": test_centers,
+                "true_label": test_targets,
+                "predicted_prob": test_probs,
+                "predicted_label": test_preds,
+            })
+            test_result.to_csv(os.path.join(diagnose_dir, f"test_result_for_{epoch}.csv"), index=False)
+
 
         torch.save(model.state_dict(), last_model_save_path)
 
@@ -544,6 +608,14 @@ def train_Causal3DNet(train_excel,
             all_train_aucs,
             all_test_aucs,
             save_path=os.path.join(current_dir, "training_metrics.png"),
+        )
+
+        plot_group_metrics(
+            group_accs=group_accs,
+            group_recalls=group_recalls,
+            group_precisions=group_precisions,
+            group_aucs=group_aucs,
+            save_path=os.path.join(current_dir, "group_metrics.png")
         )
     pass
 

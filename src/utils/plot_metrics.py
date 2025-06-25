@@ -233,6 +233,37 @@ def plot_training_metrics(
     print(f"📈 Training metrics saved to: {save_path}")
 
 
+def plot_group_metrics(
+    group_accs, group_recalls, group_precisions, group_aucs,
+    save_path="group_metrics.png"
+):
+    epochs = list(range(1, len(next(iter(group_accs.values()))) + 1))
+    group_names = ['internal_test_1', 'external_test_1', 'external_test_2', 'uncertainty_test']
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+
+    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+    axs = axs.flatten()
+
+    metric_dicts = [group_accs, group_recalls, group_precisions, group_aucs]
+    metric_titles = ['Accuracy', 'Recall', 'Precision', 'AUC']
+
+    for i, (metric_dict, title) in enumerate(zip(metric_dicts, metric_titles)):
+        ax = axs[i]
+        for group_name, color in zip(group_names, colors):
+            values = metric_dict[group_name]
+            ax.plot(epochs, values, label=group_name, color=color, linewidth=2)
+        ax.set_title(title, fontsize=14)
+        ax.set_xlabel("Epoch", fontsize=12)
+        ax.set_ylabel(title, fontsize=12)
+        ax.set_xlim([1, epochs[-1]])
+        ax.grid(True)
+        ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+
 if __name__ == '__main__':
     # 虚假数据生成
     num_epochs = 20

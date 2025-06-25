@@ -4,6 +4,8 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: PC_dataset.py
 # @Project : Causal3D-Net
+import os.path
+
 import pandas as pd
 import torch
 import numpy as np
@@ -79,6 +81,9 @@ class PCDataset(Dataset):
             return X, center, cluster
         elif self.return_type == 4:
             return X, cls_label, msk_label, center, cluster
+        elif self.return_type == 5:
+            filename = os.path.basename(image_path)
+            return filename, X, cls_label, msk_label, center, cluster
 
 
 if __name__ == '__main__':
