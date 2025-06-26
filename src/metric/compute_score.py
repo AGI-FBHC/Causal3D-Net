@@ -57,5 +57,19 @@ def compute_dice_score(pred, target, threshold=0.5, smooth=1e-6):
 
 
 def specificity_score(y_true, y_pred):
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
-    return tn / (tn + fp) if (tn + fp) > 0 else 0
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+
+    if len(y_true) == 0:
+        return 0.0
+
+    unique_classes = np.unique(y_true)
+
+    if len(unique_classes) == 1 and unique_classes[0] == 0:
+        return 1.0 if np.all(y_pred == 0) else 0.0
+
+    if len(unique_classes) == 1 and unique_classes[0] == 1:
+        return 0.0
+
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    return tn / (tn + fp) if (tn + fp) > 0 else 0.0

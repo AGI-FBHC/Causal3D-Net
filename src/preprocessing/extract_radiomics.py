@@ -140,8 +140,7 @@ def extract_radiomics_features(excel_input_path, output, params, log_path, proce
     logger.info('Extraction complete, writing CSV')
     results.T.to_csv(output, index=False, na_rep='NaN')
     logger.info('CSV writing complete')
-
-    pass
+    return results
 
 
 if __name__ == '__main__':
