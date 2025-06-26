@@ -607,7 +607,7 @@ def train_Causal3DNet(train_excel,
             log_msg += (f"Test({group_name}) => "
                         f"Accuracy: {metrics['acc']:.4f}, "
                         f"AUC: {metrics['auc']:.4f}, "
-                        f"Sensitivity: {metrics['recall']:.4f}, "
+                        f"Sensitivity: {metrics['sensitivity']:.4f}, "
                         f"Specificity: {metrics['specificity']:.4f}, "
                         f"Precision: {metrics['precision']:.4f}, "
                         f"F1: {metrics['f1']:.4f}\n")

@@ -4,6 +4,10 @@
 # @Email   : CarlCypress@yeah.net
 # @FileName: compute_score.py
 # @Project : Causal3D-Net
+import os
+
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -73,3 +77,42 @@ def specificity_score(y_true, y_pred):
 
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     return tn / (tn + fp) if (tn + fp) > 0 else 0.0
+
+
+def compute_multi_metrics(y_true, y_pred, y_prob):
+    acc = accuracy_score(y_true, y_pred)
+    auc = roc_auc_score(y_true, y_prob) if len(np.unique(y_true)) > 1 else 0.5
+    sensitivity = recall_score(y_true, y_pred, zero_division=0)
+    specificity = specificity_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, zero_division=0)
+    f1 = f1_score(y_true, y_pred, zero_division=0)
+    return {
+        'acc': acc,
+        'auc': auc,
+        'sensitivity': sensitivity,
+        'specificity': specificity,
+        'precision': precision,
+        'f1': f1
+    }
+
+
+def evaluate_test_result(test_result, center_groups):
+    y_true = test_result['cancer']
+    y_pred = test_result['y_pred']
+    y_prob = test_result['y_prob']
+    centers = test_result['center']
+
+    result_summary = dict()
+
+    # Overall
+    result_summary['overall'] = compute_multi_metrics(y_true, y_pred, y_prob)
+
+    # Per group
+    for group_name, group_center_ids in center_groups.items():
+        mask = np.isin(centers, group_center_ids)
+        y_true_group = y_true[mask]
+        y_pred_group = y_pred[mask]
+        y_prob_group = y_prob[mask]
+        result_summary[group_name] = compute_multi_metrics(y_true_group, y_pred_group, y_prob_group)
+
+    return result_summary
