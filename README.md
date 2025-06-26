@@ -22,7 +22,7 @@
 
 ## Training
 
-### stage 1 training
+### segmentation training
 
 ```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
@@ -32,7 +32,7 @@
     --outdir /home/huangdn/Causal3D-Net/src/results
 ```
 
-### stage 2 training
+### classification training
 
 ```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \

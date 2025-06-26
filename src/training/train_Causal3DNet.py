@@ -10,10 +10,11 @@ import os, argparse
 import nibabel as nib
 from tqdm import tqdm
 from datetime import datetime
+from collections import defaultdict
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import defaultdict
 
 import torch
 import torchio as tio
@@ -23,10 +24,11 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from sklearn.metrics import (accuracy_score,
-                             precision_score,
+                             roc_auc_score,
                              recall_score,
+                             precision_score,
                              f1_score,
-                             roc_auc_score)
+                             confusion_matrix)
 
 from src.dataset.PC_dataset import PCDataset
 from src.models.Causal3DNet import SegNet, Causal3DNet
@@ -45,10 +47,10 @@ from src.utils.plot_metrics import (plot_loss_and_dice_metrics,
 from src.utils.init_weights import init_weights_kaiming, load_shared_weights
 from src.metric.loss import (DiceLoss,
                              MultiScaleSegmentationLoss,
-                             compute_dice_score,
                              MultiTaskLoss,
                              OrthogonalLoss,
                              SupervisedContrastiveLoss)
+from src.metric.compute_score import compute_dice_score, specificity_score
 
 import warnings
 
@@ -292,6 +294,7 @@ def train_Causal3DNet(train_excel,
     lambda1, lambda2 = 1, 1
     mid_1_transition_epochs = 5
     mid_2_transition_epochs = 5
+    start_record_epoch = 10
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
     center_groups = {
@@ -418,14 +421,18 @@ def train_Causal3DNet(train_excel,
     all_train_losses = []
     all_train_cls_losses, all_test_cls_losses = [], []
     all_train_accs, all_test_accs = [], []
-    all_train_precisions, all_test_precisions = [], []
-    all_train_recalls, all_test_recalls = [], []
     all_train_aucs, all_test_aucs = [], []
+    all_train_sensitivitys, all_test_sensitivitys = [], []
+    all_train_specificitys, all_test_specificitys = [], []
+    all_train_precisions, all_test_precisions = [], []
+    all_train_f1s, all_test_f1s = [], []
 
     group_accs = defaultdict(list)
-    group_recalls = defaultdict(list)
-    group_precisions = defaultdict(list)
     group_aucs = defaultdict(list)
+    group_sensitivitys = defaultdict(list)
+    group_specificitys = defaultdict(list)
+    group_precisions = defaultdict(list)
+    group_f1s = defaultdict(list)
 
     best_auc = .0
     for epoch in tqdm(range(num_epochs)):
@@ -486,9 +493,11 @@ def train_Causal3DNet(train_excel,
         train_loss = total_loss / len(train_loader)
         train_cls_loss = total_cls_loss / len(train_loader)
         train_accuracy = accuracy_score(train_targets, train_preds)
-        train_recall = recall_score(train_targets, train_preds, zero_division=0)
-        train_precision = precision_score(train_targets, train_preds, zero_division=0)
         train_auc = roc_auc_score(train_targets, train_probs)
+        train_sensitivity = recall_score(train_targets, train_preds, zero_division=0)
+        train_specificity = specificity_score(train_targets, train_preds)
+        train_precision = precision_score(train_targets, train_preds, zero_division=0)
+        train_f1 = f1_score(train_targets, train_preds, zero_division=0)
 
         model.eval()
 
@@ -522,21 +531,30 @@ def train_Causal3DNet(train_excel,
 
         test_cls_loss = total_test_cls_loss / len(test_loader)
         test_accuracy = accuracy_score(test_targets, test_preds)
-        test_precision = precision_score(test_targets, test_preds, zero_division=0)
-        test_recall = recall_score(test_targets, test_preds, zero_division=0)
         test_auc = roc_auc_score(test_targets, test_probs)
+        test_sensitivity = recall_score(test_targets, test_preds, zero_division=0)
+        test_specificity = specificity_score(test_targets, test_preds)
+        test_precision = precision_score(test_targets, test_preds, zero_division=0)
+        test_f1 = f1_score(test_targets, test_preds, zero_division=0)
 
         all_train_losses.append(train_loss)
         all_train_cls_losses.append(train_cls_loss)
+
         all_train_accs.append(train_accuracy)
-        all_train_recalls.append(train_recall)
-        all_train_precisions.append(train_precision)
         all_train_aucs.append(train_auc)
+        all_train_sensitivitys.append(train_sensitivity)
+        all_train_specificitys.append(train_specificity)
+        all_train_precisions.append(train_precision)
+        all_train_f1s.append(train_f1)
+
         all_test_cls_losses.append(test_cls_loss)
+
         all_test_accs.append(test_accuracy)
-        all_test_recalls.append(test_recall)
-        all_test_precisions.append(test_precision)
         all_test_aucs.append(test_auc)
+        all_test_sensitivitys.append(test_sensitivity)
+        all_test_specificitys.append(test_specificity)
+        all_test_precisions.append(test_precision)
+        all_test_f1s.append(test_f1)
 
         test_preds = np.array(test_preds)
         test_probs = np.array(test_probs)
@@ -551,31 +569,48 @@ def train_Causal3DNet(train_excel,
             group_y_prob = test_probs[mask]
 
             group_acc = accuracy_score(group_y_true, group_y_pred)
-            group_recall = recall_score(group_y_true, group_y_pred, zero_division=0)
-            group_precision = precision_score(group_y_true, group_y_pred, zero_division=0)
             group_auc = roc_auc_score(group_y_true, group_y_prob) if len(np.unique(group_y_true)) > 1 else 0.5
+            group_sensitivity = recall_score(group_y_true, group_y_pred, zero_division=0)
+            group_specificity = specificity_score(group_y_true, group_y_pred)
+            group_precision = precision_score(group_y_true, group_y_pred, zero_division=0)
+            group_f1 = f1_score(group_y_true, group_y_pred, zero_division=0)
 
             group_metrics[group_name] = {
                 "acc": group_acc,
-                "recall": group_recall,
+                "auc": group_auc,
+                "sensitivity": group_sensitivity,
+                "specificity": group_specificity,
                 "precision": group_precision,
-                "auc": group_auc
+                "f1": group_f1,
             }
 
             group_accs[group_name].append(group_acc)
-            group_recalls[group_name].append(group_recall)
-            group_precisions[group_name].append(group_precision)
             group_aucs[group_name].append(group_auc)
+            group_sensitivitys[group_name].append(group_sensitivity)
+            group_specificitys[group_name].append(group_specificity)
+            group_precisions[group_name].append(group_precision)
+            group_f1s[group_name].append(group_f1)
 
         current_lr = optimizer.param_groups[0]['lr']
 
         log_msg = (f"[Epoch {epoch + 1}/{num_epochs}, LR {current_lr}]\n"
                    f"Train => Loss(all): {train_loss:.4f}, Loss(cls): {train_cls_loss:.4f}, "
-                   f"Acc: {train_accuracy:.4f}, Prec: {train_precision:.4f}, "
-                   f"Recall: {train_recall:.4f}, AUC: {train_auc:.4f}\n"
-                   f"Test  => Loss(cls): {test_cls_loss:.4f}, "
-                   f"Acc: {test_accuracy:.4f}, Prec: {test_precision:.4f}, "
-                   f"Recall: {test_recall:.4f}, AUC: {test_auc:.4f}")
+                   f"Accuracy: {train_accuracy:.4f}, AUC: {train_auc:.4f}, "
+                   f"Sensitivity: {train_sensitivity:.4f}, Specificity: {train_specificity:.4f}, "
+                   f"Precision: {train_precision:.4f}, F1: {train_f1:.4f}\n"
+                   f"Test(All)  => Loss(cls): {test_cls_loss:.4f}, "
+                   f"Accuracy: {test_accuracy:.4f}, AUC: {test_auc:.4f}, "
+                   f"Sensitivity: {test_sensitivity:.4f}, Specificity: {test_specificity:.4f}, "
+                   f"Precision: {test_precision:.4f}, F1: {test_f1:.4f}\n")
+        for group_name in ["internal_test_1", "external_test_1", "external_test_2", "uncertainty_test"]:
+            metrics = group_metrics[group_name]
+            log_msg += (f"Test({group_name}) => "
+                        f"Accuracy: {metrics['acc']:.4f}, "
+                        f"AUC: {metrics['auc']:.4f}, "
+                        f"Sensitivity: {metrics['recall']:.4f}, "
+                        f"Specificity: {metrics['specificity']:.4f}, "
+                        f"Precision: {metrics['precision']:.4f}, "
+                        f"F1: {metrics['f1']:.4f}\n")
         logging.info(log_msg)
 
         if test_auc > best_auc:
@@ -583,6 +618,7 @@ def train_Causal3DNet(train_excel,
             torch.save(model.state_dict(), best_model_save_path)
             logging.info(f"✅ Best model updated at epoch {epoch+1}, AUC: {best_auc:.4f}")
 
+        if epoch >= start_record_epoch:
             test_result = pd.DataFrame({
                 "filename": test_filenames,
                 "center_id": test_centers,
@@ -592,7 +628,6 @@ def train_Causal3DNet(train_excel,
             })
             test_result.to_csv(os.path.join(diagnose_dir, f"test_result_for_{epoch}.csv"), index=False)
 
-
         torch.save(model.state_dict(), last_model_save_path)
 
         plot_training_metrics(
@@ -601,20 +636,26 @@ def train_Causal3DNet(train_excel,
             all_test_cls_losses,
             all_train_accs,
             all_test_accs,
-            all_train_precisions,
-            all_test_precisions,
-            all_train_recalls,
-            all_test_recalls,
             all_train_aucs,
             all_test_aucs,
+            all_train_sensitivitys,
+            all_test_sensitivitys,
+            all_train_specificitys,
+            all_test_specificitys,
+            all_train_precisions,
+            all_test_precisions,
+            all_train_f1s,
+            all_test_f1s,
             save_path=os.path.join(current_dir, "training_metrics.png"),
         )
 
         plot_group_metrics(
             group_accs=group_accs,
-            group_recalls=group_recalls,
-            group_precisions=group_precisions,
             group_aucs=group_aucs,
+            group_sensitivitys=group_sensitivitys,
+            group_specificitys=group_specificitys,
+            group_precisions=group_precisions,
+            group_f1s=group_f1s,
             save_path=os.path.join(current_dir, "group_metrics.png")
         )
     pass

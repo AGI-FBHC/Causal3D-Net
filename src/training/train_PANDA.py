@@ -37,9 +37,9 @@ from src.lr_scheduler.linear_lr import linear_lr_lambda
 from src.utils.plot_metrics import (plot_loss_and_dice_metrics,
                                     plot_segmentation_and_classify_metrics)
 from src.utils.init_weights import init_weights_kaiming, load_shared_weights
+from src.metric.compute_score import compute_dice_score
 from src.metric.loss import (DiceLoss,
                              MultiScaleSegmentationLoss,
-                             compute_dice_score,
                              MultiTaskLoss)
 
 import warnings

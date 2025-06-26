@@ -157,34 +157,38 @@ def plot_segmentation_and_classify_metrics(
 
 
 def plot_training_metrics(
-    all_train_losses,
-    all_train_cls_losses,
-    all_test_cls_losses,
-    all_train_accs,
-    all_test_accs,
-    all_train_precs,
-    all_test_precs,
-    all_train_recalls,
-    all_test_recalls,
-    all_train_aucs,
-    all_test_aucs,
+    train_losses,
+    train_cls_losses,
+    test_cls_losses,
+    train_accs,
+    test_accs,
+    train_aucs,
+    test_aucs,
+    train_recalls,
+    test_recalls,
+    train_specificitys,
+    test_specificitys,
+    train_precs,
+    test_precs,
+    train_f1s,
+    test_f1s,
     save_path="training_metrics.png"
 ):
-    epochs = list(range(1, len(all_train_losses) + 1))
-    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
+    epochs = list(range(1, len(train_losses) + 1))
+    fig, axes = plt.subplots(2, 4, figsize=(20, 8))
     axes = axes.flatten()
 
-    # 1. All loss
-    axes[0].plot(epochs, all_train_losses, label='Train Total Loss')
+    # 1. All Loss
+    axes[0].plot(epochs, train_losses, label='Train Total Loss')
     axes[0].set_title('1. Train Total Loss')
     axes[0].set_xlabel('Epoch')
     axes[0].set_ylabel('Loss')
     axes[0].legend()
     axes[0].grid(True)
 
-    # 2. Cls loss
-    axes[1].plot(epochs, all_train_cls_losses, label='Train Cls Loss')
-    axes[1].plot(epochs, all_test_cls_losses, label='Test Cls Loss')
+    # 2. Classification Loss
+    axes[1].plot(epochs, train_cls_losses, label='Train Cls Loss')
+    axes[1].plot(epochs, test_cls_losses, label='Test Cls Loss')
     axes[1].set_title('2. Classification Loss')
     axes[1].set_xlabel('Epoch')
     axes[1].set_ylabel('Loss')
@@ -192,62 +196,91 @@ def plot_training_metrics(
     axes[1].grid(True)
 
     # 3. Accuracy
-    axes[2].plot(epochs, all_train_accs, label='Train Accuracy')
-    axes[2].plot(epochs, all_test_accs, label='Test Accuracy')
+    axes[2].plot(epochs, train_accs, label='Train Accuracy')
+    axes[2].plot(epochs, test_accs, label='Test Accuracy')
     axes[2].set_title('3. Accuracy')
     axes[2].set_xlabel('Epoch')
     axes[2].set_ylabel('Accuracy')
     axes[2].legend()
     axes[2].grid(True)
 
-    # 4. Recall
-    axes[3].plot(epochs, all_train_recalls, label='Train Recall')
-    axes[3].plot(epochs, all_test_recalls, label='Test Recall')
-    axes[3].set_title('4. Recall')
+    # 4. AUC
+    axes[3].plot(epochs, train_aucs, label='Train AUC')
+    axes[3].plot(epochs, test_aucs, label='Test AUC')
+    axes[3].set_title('4. AUC')
     axes[3].set_xlabel('Epoch')
-    axes[3].set_ylabel('Recall')
+    axes[3].set_ylabel('AUC')
     axes[3].legend()
     axes[3].grid(True)
 
-    # 5. Precision
-    axes[4].plot(epochs, all_train_precs, label='Train Precision')
-    axes[4].plot(epochs, all_test_precs, label='Test Precision')
-    axes[4].set_title('5. Precision')
+    # 5. Sensitivity (Recall)
+    axes[4].plot(epochs, train_recalls, label='Train Sensitivity')
+    axes[4].plot(epochs, test_recalls, label='Test Sensitivity')
+    axes[4].set_title('5. Sensitivity (Recall)')
     axes[4].set_xlabel('Epoch')
-    axes[4].set_ylabel('Precision')
+    axes[4].set_ylabel('Sensitivity')
     axes[4].legend()
     axes[4].grid(True)
 
-    # 6. AUC
-    axes[5].plot(epochs, all_train_aucs, label='Train AUC')
-    axes[5].plot(epochs, all_test_aucs, label='Test AUC')
-    axes[5].set_title('6. AUC')
+    # 6. Specificity
+    axes[5].plot(epochs, train_specificitys, label='Train Specificity')
+    axes[5].plot(epochs, test_specificitys, label='Test Specificity')
+    axes[5].set_title('6. Specificity')
     axes[5].set_xlabel('Epoch')
-    axes[5].set_ylabel('AUC')
+    axes[5].set_ylabel('Specificity')
     axes[5].legend()
     axes[5].grid(True)
+
+    # 7. Precision
+    axes[6].plot(epochs, train_precs, label='Train Precision')
+    axes[6].plot(epochs, test_precs, label='Test Precision')
+    axes[6].set_title('7. Precision')
+    axes[6].set_xlabel('Epoch')
+    axes[6].set_ylabel('Precision')
+    axes[6].legend()
+    axes[6].grid(True)
+
+    # 8. F1 Score
+    axes[7].plot(epochs, train_f1s, label='Train F1 Score')
+    axes[7].plot(epochs, test_f1s, label='Test F1 Score')
+    axes[7].set_title('8. F1 Score')
+    axes[7].set_xlabel('Epoch')
+    axes[7].set_ylabel('F1 Score')
+    axes[7].legend()
+    axes[7].grid(True)
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=400)
     plt.close()
-    print(f"📈 Training metrics saved to: {save_path}")
 
 
 def plot_group_metrics(
-    group_accs, group_recalls, group_precisions, group_aucs,
+    group_accs,
+    group_aucs,
+    group_sensitivitys,
+    group_specificitys,
+    group_precisions,
+    group_f1s,
     save_path="group_metrics.png"
 ):
     epochs = list(range(1, len(next(iter(group_accs.values()))) + 1))
-    group_names = ['internal_test_1', 'external_test_1', 'external_test_2', 'uncertainty_test']
-    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+    group_names = list(group_accs.keys())
+    base_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+    colors = base_colors[:len(group_names)]
 
-    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+    fig, axs = plt.subplots(2, 3, figsize=(20, 10))
     axs = axs.flatten()
 
-    metric_dicts = [group_accs, group_recalls, group_precisions, group_aucs]
-    metric_titles = ['Accuracy', 'Recall', 'Precision', 'AUC']
+    metric_dicts = [
+        (group_accs, 'Accuracy'),
+        (group_aucs, 'AUC'),
+        (group_sensitivitys, 'Sensitivity'),
+        (group_specificitys, 'Specificity'),
+        (group_precisions, 'Precision'),
+        (group_f1s, 'F1')
+    ]
 
-    for i, (metric_dict, title) in enumerate(zip(metric_dicts, metric_titles)):
+    for i, (metric_dict, title) in enumerate(metric_dicts):
         ax = axs[i]
         for group_name, color in zip(group_names, colors):
             values = metric_dict[group_name]
@@ -260,27 +293,58 @@ def plot_group_metrics(
         ax.legend()
 
     plt.tight_layout()
-    plt.savefig(save_path)
+    plt.savefig(save_path, dpi=400)
     plt.close()
 
 
 if __name__ == '__main__':
-    # 虚假数据生成
+    # 生成模拟数据
     num_epochs = 20
-    train_losses = np.linspace(1.0, 0.2, num_epochs) + np.random.normal(0, 0.05, num_epochs)
-    test_losses = np.linspace(1.2, 0.3, num_epochs) + np.random.normal(0, 0.07, num_epochs)
-    train_dices = np.linspace(0.4, 0.9, num_epochs) + np.random.normal(0, 0.03, num_epochs)
-    test_dices = np.linspace(0.35, 0.88, num_epochs) + np.random.normal(0, 0.04, num_epochs)
 
-    # 保证 Dice 在 0~1 范围内
-    train_dices = np.clip(train_dices, 0, 1)
-    test_dices = np.clip(test_dices, 0, 1)
 
-    # 调用绘图函数
-    plot_loss_and_dice_metrics(
-        train_losses.tolist(), test_losses.tolist(),
-        train_dices.tolist(), test_dices.tolist(),
-        save_dir='/home/huangdn/Causal3D-Net/src/results/2025-05-28_12-55-27',
-        filename='fake_metrics_curve.png'
+    def rand_metrics(mean, std=0.05):
+        return np.clip(np.random.normal(loc=mean, scale=std, size=num_epochs), 0, 1).tolist()
+
+
+    # 模拟训练 & 测试数据
+    all_train_losses = np.random.uniform(0.4, 1.0, num_epochs).tolist()
+    all_train_cls_losses = np.random.uniform(0.3, 0.9, num_epochs).tolist()
+    all_test_cls_losses = np.random.uniform(0.3, 0.9, num_epochs).tolist()
+
+    all_train_accs = rand_metrics(0.85)
+    all_test_accs = rand_metrics(0.82)
+
+    all_train_aucs = rand_metrics(0.88)
+    all_test_aucs = rand_metrics(0.85)
+
+    all_train_recalls = rand_metrics(0.84)
+    all_test_recalls = rand_metrics(0.80)
+
+    all_train_specificitys = rand_metrics(0.86)
+    all_test_specificitys = rand_metrics(0.82)
+
+    all_train_precs = rand_metrics(0.83)
+    all_test_precs = rand_metrics(0.79)
+
+    all_train_f1s = rand_metrics(0.84)
+    all_test_f1s = rand_metrics(0.80)
+
+    # 调用可视化函数
+    plot_training_metrics(
+        all_train_losses,
+        all_train_cls_losses,
+        all_test_cls_losses,
+        all_train_accs,
+        all_test_accs,
+        all_train_aucs,
+        all_test_aucs,
+        all_train_recalls,
+        all_test_recalls,
+        all_train_specificitys,
+        all_test_specificitys,
+        all_train_precs,
+        all_test_precs,
+        all_train_f1s,
+        all_test_f1s,
+        save_path="demo_training_metrics.png"
     )
-    pass
