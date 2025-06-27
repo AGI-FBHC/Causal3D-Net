@@ -96,7 +96,7 @@ def run_baseline(train_excel_path,
                 "\n##############################\n")
         logging.info(cite)
         model = VGG25D()
-        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
     elif method == "vit":
 

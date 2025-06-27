@@ -254,6 +254,40 @@ def plot_training_metrics(
     plt.close()
 
 
+
+def plot_training_metrics_for_baseline(all_train_metrics: dict,
+                          all_test_metrics: dict,
+                          save_path: str):
+    """
+    可视化训练过程中的 7 个指标并保存图像。
+
+    参数:
+        all_train_metrics: dict，包含 'losses', 'acc', 'auc', 'sensitivity', 'specificity', 'precision', 'f1'
+        all_test_metrics: dict，同上
+        save_path: str，保存的完整文件路径（如 'results/metrics_plot.png'）
+    """
+
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    metric_names = ['losses', 'acc', 'auc', 'sensitivity', 'specificity', 'precision', 'f1']
+    display_names = ['Loss', 'Accuracy', 'AUC', 'Sensitivity', 'Specificity', 'Precision', 'F1 Score']
+
+    plt.figure(figsize=(20, 10))
+    for i, (metric, title) in enumerate(zip(metric_names, display_names)):
+        plt.subplot(2, 4, i + 1)
+        plt.plot(all_train_metrics[metric], label='Train', color='blue', linewidth=2)
+        plt.plot(all_test_metrics[metric], label='Test', color='orange', linewidth=2)
+        plt.title(title, fontsize=14)
+        plt.xlabel("Epoch", fontsize=12)
+        plt.ylabel(title, fontsize=12)
+        plt.grid(True)
+        plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+
 def plot_group_metrics(
     group_accs,
     group_aucs,

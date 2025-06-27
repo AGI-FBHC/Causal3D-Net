@@ -5,6 +5,7 @@
 # @FileName: end_to_end_method.py
 # @Project : Causal3D-Net
 import os
+import logging
 from tqdm import tqdm
 
 import numpy as np
@@ -27,9 +28,11 @@ from src.augmentation.low_resolution import SimulateLowResolutionTransform
 from src.dataset.PC_dataset import PCDataset
 from src.models.VGG_2_5D import VGG25D
 from src.training.train_baseline import train_one_epoch, test_one_epoch
+from src.metric.compute_score import compute_multi_metrics
+from src.utils.plot_metrics import plot_training_metrics_for_baseline
 
 
-def ct_with_dl(train_excel, test_excel, cuda_id, model) -> dict:
+def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
     """Simonyan, K. and Zisserman, A., 2014. Very deep convolutional networks for
     large-scale image recognition. arXiv preprint arXiv:1409.1556."""
 
@@ -143,10 +146,46 @@ def ct_with_dl(train_excel, test_excel, cuda_id, model) -> dict:
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 
     model.to(device)
+    y_pred, y_prob = None, None
+    all_train_metrics = {
+        'losses': [],
+        'acc': [],
+        'auc': [],
+        'sensitivity': [],
+        'specificity': [],
+        'precision': [],
+        'f1': [],
+    }
+
+    all_test_metrics = {
+        'losses': [],
+        'acc': [],
+        'auc': [],
+        'sensitivity': [],
+        'specificity': [],
+        'precision': [],
+        'f1': [],
+    }
     for epoch in tqdm(range(num_epochs), desc="Training"):
-        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_pred, train_prob, train_target = train_one_epoch(model, train_loader, criterion, optimizer, device)
         scheduler.step()
-    y_pred, y_prob = test_one_epoch(model, test_loader, device)
+        test_loss, test_pred, test_prob, test_target = test_one_epoch(model, test_loader, criterion, device)
+
+        train_metrics = compute_multi_metrics(y_true=train_target, y_pred=train_pred, y_prob=train_prob)
+        test_metrics = compute_multi_metrics(y_true=test_target, y_pred=test_pred, y_prob=test_prob)
+        y_pred, y_prob = test_pred, test_prob
+
+        all_train_metrics['losses'].append(train_loss)
+        all_test_metrics['losses'].append(test_loss)
+        for k in train_metrics:
+            all_train_metrics[k].append(train_metrics[k])
+            all_test_metrics[k].append(test_metrics[k])
+
+        plot_training_metrics_for_baseline(
+            train_metrics,
+            test_metrics,
+            save_path=os.path.join(current_dir, "training_metrics.png"),
+        )
 
     return {
         "y_pred": y_pred,
