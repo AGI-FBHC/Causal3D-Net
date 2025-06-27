@@ -27,14 +27,13 @@ def preprocess_data(train_data, test_data):
     return train_data_scaled, test_data_scaled
 
 
-def radiomics_with_randomforest(train_excel,
-                                test_excel,
-                                features) -> dict:
+def radiomics_with_randomforest(train_excel, test_excel, features) -> dict:
     """Chu, L.C., Park, S., Kawamoto, S., Fouladi, D.F., Shayesteh, S., Zinreich, E.S., Graves, J.S.,
     Horton, K.M., Hruban, R.H., Yuille, A.L. and Kinzler, K.W., 2019. Utility of CT radiomics features
     in differentiation of pancreatic ductal adenocarcinoma from normal pancreatic tissue.
     American Journal of Roentgenology, 213(2), pp.349-357."""
-
+    train_excel['image_path'] = train_excel['image_path'].apply(lambda x: os.path.basename(x))
+    test_excel['image_path'] = test_excel['image_path'].apply(lambda x: os.path.basename(x))
     # features = features.iloc[:, 39:]
     features_map = features.set_index('Image')
     train_features = features_map.loc[train_excel['image_path']].reset_index()

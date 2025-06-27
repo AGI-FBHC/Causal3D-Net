@@ -8,10 +8,16 @@ import logging
 import os, argparse
 from datetime import datetime
 
+import torch
+import torch.nn as nn
+
 import numpy as np
 import pandas as pd
 
 from src.baselines.radiomics_method import radiomics_with_randomforest
+# from src.baselines.vgg25d_method import ct_with_vgg25d
+from src.baselines.end_to_end_method import ct_with_dl
+from src.models.VGG_2_5D import VGG25D
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from sklearn.metrics import (accuracy_score,
@@ -49,9 +55,9 @@ def run_baseline(train_excel_path,
     test_center = test_excel["center"].values
     test_cancer = test_excel["cancer"].values
     train_excel['image_path'] = train_excel['image_path'].apply(
-        lambda x: os.path.basename(x).replace(".npy", ".nii.gz"))
+        lambda x: x.replace(".npy", ".nii.gz"))
     test_excel['image_path'] = test_excel['image_path'].apply(
-        lambda x: os.path.basename(x).replace(".npy", ".nii.gz"))
+        lambda x: x.replace(".npy", ".nii.gz"))
     train_excel = train_excel[["image_path", "cancer"]]
     test_excel = test_excel[["image_path", "cancer"]]
 
@@ -69,8 +75,8 @@ def run_baseline(train_excel_path,
                 "Chu, L.C., Park, S., Kawamoto, S., Fouladi, D.F., Shayesteh, S., Zinreich, E.S., Graves, J.S., "
                 "Horton, K.M., Hruban, R.H., Yuille, A.L. and Kinzler, K.W., 2019. Utility of CT radiomics features "
                 "in differentiation of pancreatic ductal adenocarcinoma from normal pancreatic tissue. "
-                "American Journal of Roentgenology, 213(2), pp.349-357.\n"
-                "##############################\n")
+                "American Journal of Roentgenology, 213(2), pp.349-357."
+                "\n##############################\n")
         logging.info(cite)
 
         feature_file_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.csv"
@@ -84,7 +90,13 @@ def run_baseline(train_excel_path,
 
         test_result = radiomics_with_randomforest(train_excel, test_excel, features)
     elif method == "2.5d_vgg":
-
+        cite = ("\n\n##############################\n"
+                "Simonyan, K. and Zisserman, A., 2014. Very deep convolutional networks "
+                "for large-scale image recognition. arXiv preprint arXiv:1409.1556."
+                "\n##############################\n")
+        logging.info(cite)
+        model = VGG25D()
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model)
         pass
     elif method == "vit":
 
@@ -160,7 +172,11 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="radiomics",
+                        default="2.5d_vgg",
+                        choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
+                                 "hybrid_transformer", "cnet", "neural_transformer",
+                                 "mix_style", "big_aug", "rand_conv", "adver_conv",
+                                 "causality_aug", "chen", "chu", "liu", "zhu", "xia"],
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,

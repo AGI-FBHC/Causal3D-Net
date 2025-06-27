@@ -626,7 +626,7 @@ def train_Causal3DNet(train_excel,
                 "predicted_prob": test_probs,
                 "predicted_label": test_preds,
             })
-            test_result.to_csv(os.path.join(diagnose_dir, f"test_result_for_{epoch}.csv"), index=False)
+            test_result.to_csv(os.path.join(diagnose_dir, f"test_result_for_{epoch+1}.csv"), index=False)
 
         torch.save(model.state_dict(), last_model_save_path)
 
