@@ -26,15 +26,15 @@ from src.augmentation.gaussian_blur import GaussianBlurTransform
 from src.augmentation.gaussian_noise import GaussianNoiseTransform
 from src.augmentation.low_resolution import SimulateLowResolutionTransform
 from src.dataset.PC_dataset import PCDataset
-from src.models.VGG_2_5D import VGG25D
 from src.training.train_baseline import train_one_epoch, test_one_epoch
-from src.metric.compute_score import compute_multi_metrics
-from src.utils.plot_metrics import plot_training_metrics_for_baseline
+from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
+from src.utils.plot_metrics import plot_training_metrics_for_baseline, plot_group_metrics
 
 
 def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
-    """Simonyan, K. and Zisserman, A., 2014. Very deep convolutional networks for
-    large-scale image recognition. arXiv preprint arXiv:1409.1556."""
+    test = pd.read_excel(test_excel)
+    test_result = {"center": test["center"],
+                   "cancer": test["cancer"]}
 
     batch_size = 4
     initial_lr = 1e-2
@@ -166,6 +166,11 @@ def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
         'precision': [],
         'f1': [],
     }
+    group_metric_keys = ["acc", "auc", "sensitivity", "specificity", "precision", "f1"]
+    group_names = ["internal_test_1", "external_test_1", "external_test_2", "uncertainty_test"]
+    group_metrics_by_epoch = {
+        key: {group: [] for group in group_names} for key in group_metric_keys
+    }
     for epoch in tqdm(range(num_epochs), desc="Training"):
         train_loss, train_pred, train_prob, train_target = train_one_epoch(model, train_loader, criterion, optimizer, device)
         scheduler.step()
@@ -175,16 +180,51 @@ def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
         test_metrics = compute_multi_metrics(y_true=test_target, y_pred=test_pred, y_prob=test_prob)
         y_pred, y_prob = test_pred, test_prob
 
+        test_result["y_pred"] = y_pred
+        test_result["y_prob"] = y_prob
         all_train_metrics['losses'].append(train_loss)
         all_test_metrics['losses'].append(test_loss)
         for k in train_metrics:
             all_train_metrics[k].append(train_metrics[k])
             all_test_metrics[k].append(test_metrics[k])
+        test_group_metrics = evaluate_test_result(test_result)
+        for metric_key in group_metric_keys:
+            for group_name in group_names:
+                group_metrics_by_epoch[metric_key][group_name].append(
+                    test_group_metrics[group_name][metric_key]
+                )
+
+        current_lr = optimizer.param_groups[0]['lr']
+        log_msg = (f"[Epoch {epoch + 1}/{num_epochs}, LR {current_lr:.6f}]\n"
+                   f"Train => Loss: {train_loss:.4f}, "
+                   f"Accuracy: {train_metrics['acc']:.4f}, AUC: {train_metrics['auc']:.4f}, "
+                   f"Sensitivity: {train_metrics['sensitivity']:.4f}, Specificity: {train_metrics['specificity']:.4f}, "
+                   f"Precision: {train_metrics['precision']:.4f}, F1: {train_metrics['f1']:.4f}\n"
+                   f"Test  => Loss: {test_loss:.4f}, "
+                   f"Accuracy: {test_metrics['acc']:.4f}, AUC: {test_metrics['auc']:.4f}, "
+                   f"Sensitivity: {test_metrics['sensitivity']:.4f}, Specificity: {test_metrics['specificity']:.4f}, "
+                   f"Precision: {test_metrics['precision']:.4f}, F1: {test_metrics['f1']:.4f}\n")
+        for group_name in group_names:
+            group = test_group_metrics[group_name]
+            log_msg += (f"Test({group_name}) => "
+                        f"Accuracy: {group['acc']:.4f}, AUC: {group['auc']:.4f}, "
+                        f"Sensitivity: {group['sensitivity']:.4f}, Specificity: {group['specificity']:.4f}, "
+                        f"Precision: {group['precision']:.4f}, F1: {group['f1']:.4f}\n")
+        logging.info(log_msg)
 
         plot_training_metrics_for_baseline(
-            train_metrics,
-            test_metrics,
+            all_train_metrics,
+            all_test_metrics,
             save_path=os.path.join(current_dir, "training_metrics.png"),
+        )
+        plot_group_metrics(
+            group_accs=group_metrics_by_epoch['acc'],
+            group_aucs=group_metrics_by_epoch['auc'],
+            group_sensitivitys=group_metrics_by_epoch['sensitivity'],
+            group_specificitys=group_metrics_by_epoch['specificity'],
+            group_precisions=group_metrics_by_epoch['precision'],
+            group_f1s=group_metrics_by_epoch['f1'],
+            save_path=os.path.join(current_dir, "group_metrics.png")
         )
 
     return {

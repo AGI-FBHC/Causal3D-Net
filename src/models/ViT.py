@@ -6,6 +6,7 @@
 # @Project : Causal3D-Net
 from monai.networks.nets import ViT
 import torch.nn as nn
+import torch
 
 
 class ViTClassifier(nn.Module):
@@ -28,4 +29,23 @@ class ViTClassifier(nn.Module):
         )
 
     def forward(self, x):
-        return self.vit(x)
+        logits = self.vit(x)
+        if isinstance(logits, tuple):
+            logits = logits[0]
+        return logits
+
+
+if __name__ == '__main__':
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+
+    input_tensor = torch.randn(4, 1, 50, 256, 256).to(device)
+
+    model = ViTClassifier(img_size=(50, 256, 256), num_classes=2).to(device)
+
+    # 设置为评估模式并执行前向传播
+    model.eval()
+    with torch.no_grad():
+        output = model(input_tensor)
+
+    print("Output shape:", output.shape)
+    print("Output logits:", output)

@@ -18,6 +18,7 @@ from src.baselines.radiomics_method import radiomics_with_randomforest
 # from src.baselines.vgg25d_method import ct_with_vgg25d
 from src.baselines.end_to_end_method import ct_with_dl
 from src.models.VGG_2_5D import VGG25D
+from src.models.ViT import ViTClassifier
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from sklearn.metrics import (accuracy_score,
@@ -95,10 +96,19 @@ def run_baseline(train_excel_path,
                 "for large-scale image recognition. arXiv preprint arXiv:1409.1556."
                 "\n##############################\n")
         logging.info(cite)
-        model = VGG25D()
+        model = VGG25D(num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
     elif method == "vit":
+        cite = ("\n\n##############################\n"
+                "Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., "
+                "Dehghani, M., Minderer, M., Heigold, G., Gelly, S. and Uszkoreit, J., 2020. "
+                "An image is worth 16x16 words: Transformers for image recognition at scale. "
+                "arXiv preprint arXiv:2010.11929."
+                "\n##############################\n")
+        logging.info(cite)
+        model = ViTClassifier(img_size=(50, 256, 256), num_classes=2)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
 
         pass
     elif method == "3d_cnn":
@@ -172,7 +182,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="2.5d_vgg",
+                        default="vit",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "mix_style", "big_aug", "rand_conv", "adver_conv",

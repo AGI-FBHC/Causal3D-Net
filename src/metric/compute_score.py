@@ -96,7 +96,11 @@ def compute_multi_metrics(y_true, y_pred, y_prob):
     }
 
 
-def evaluate_test_result(test_result, center_groups):
+def evaluate_test_result(test_result, center_groups=None):
+    center_groups = {"internal_test_1": [0, 3],
+                     "external_test_1": [6, 8],
+                     "external_test_2": [15, 16, 17],
+                     "uncertainty_test": [9, 10, 12], } if center_groups is None else center_groups
     y_true = test_result['cancer']
     y_pred = test_result['y_pred']
     y_prob = test_result['y_prob']
