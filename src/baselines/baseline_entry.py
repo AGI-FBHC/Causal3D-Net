@@ -19,6 +19,7 @@ from src.baselines.radiomics_method import radiomics_with_randomforest
 from src.baselines.end_to_end_method import ct_with_dl
 from src.models.VGG_2_5D import VGG25D
 from src.models.ViT import ViTClassifier
+from src.models.ResNet import generate_model
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from sklearn.metrics import (accuracy_score,
@@ -98,7 +99,6 @@ def run_baseline(train_excel_path,
         logging.info(cite)
         model = VGG25D(num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
-        pass
     elif method == "vit":
         cite = ("\n\n##############################\n"
                 "Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., "
@@ -109,14 +109,24 @@ def run_baseline(train_excel_path,
         logging.info(cite)
         model = ViTClassifier(img_size=(50, 256, 256), num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
-
-        pass
     elif method == "3d_cnn":
-
-        pass
+        cite = ("\n\n##############################\n"
+                "Chen, X., Chen, Y., Ma, C., Liu, X. and Tang, X., 2018, October. "
+                "Classification of pancreatic tumors based on MRI images using 3D convolutional neural networks. "
+                "In Proceedings of the 2nd International Symposium on Image Computing and Digital Medicine (pp. 92-96)."
+                "\n##############################\n")
+        logging.info(cite)
+        model = generate_model(18, n_input_channels=1, n_classes=2)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "hybrid_transformer":
-
-        pass
+        cite = ("\n\n##############################\n"
+                "Zhang, T., Feng, Y., Zhao, Y., Fan, G., Yang, A., Lyu, S., Zhang, P., Song, F., Ma, C., Sun, "
+                "Y. and Feng, Y., 2023. MSHT: Multi-stage hybrid transformer for the ROSE image analysis of "
+                "pancreatic cancer. IEEE Journal of Biomedical and Health Informatics, 27(4), pp.1946-1957."
+                "\n##############################\n")
+        logging.info(cite)
+        model = None
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "cnet":
 
         pass

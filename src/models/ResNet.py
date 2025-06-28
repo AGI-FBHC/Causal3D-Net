@@ -240,11 +240,19 @@ def generate_model(model_depth, **kwargs):
 
 
 if __name__ == '__main__':
-    model = generate_model(10, n_input_channels=1, n_classes=2)
-    x = torch.randn(1, 1, 40, 160, 256)
-    y = model(x)
-    print(x.size(), y.size())
-    pass
+    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+
+    input_tensor = torch.randn(4, 1, 50, 256, 256).to(device)
+
+    model = generate_model(18, n_input_channels=1, n_classes=2).to(device)
+
+    # 设置为评估模式并执行前向传播
+    model.eval()
+    with torch.no_grad():
+        output = model(input_tensor)
+
+    print("Output shape:", output.shape)
+    print("Output logits:", output)
 
 
 
