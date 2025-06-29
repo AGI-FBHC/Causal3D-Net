@@ -43,6 +43,34 @@
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
 
+### Ablation
+
+#### only individual branch
+
+```
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 1 \
+    --cent 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### only center branch
+
+```
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 0 \
+    --cent 1 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
 ## Baseline
 
 ```

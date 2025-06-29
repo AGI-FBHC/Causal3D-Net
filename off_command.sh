@@ -1,10 +1,12 @@
 #!/bin/sh
 
 
-/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.baselines.baseline_entry \
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
-    --method 3d_cnn \
-    --cuda_id 5 \
-    --outdir /home/huangdn/Causal3D-Net/src/results
+    --indi 1 \
+    --cent 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 

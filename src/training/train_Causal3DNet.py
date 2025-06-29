@@ -261,9 +261,9 @@ def train_seg(train_excel,
         )
 
 
-def train_Causal3DNet(train_excel,
-                      test_excel,
-                      cuda_id=5,
+def train_Causal3DNet(train_excel: str, test_excel: str,
+                      use_indi: int = 1, use_cent: int = 1,
+                      cuda_id: int =5,
                       output_dir: str = "/home/huangdn/Causal3D-Net/src/results",
                       model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
                                           "2025-06-21_06-49-30/last_model.pth"):
@@ -285,6 +285,9 @@ def train_Causal3DNet(train_excel,
     console.setLevel(logging.INFO)
     logging.getLogger().addHandler(console)
 
+    info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
+                f"center branch: {'Yes' if use_cent else 'No'} in causal module.")
+    logging.info(info_smg)
     batch_size = 8
     initial_lr = 1e-3
     weight_decay = 3e-5
@@ -454,22 +457,25 @@ def train_Causal3DNet(train_excel,
 
             l_c_main = cls_criterion(y_main, y_cls)
 
-            l_indi =  suc_criterion(individual_confounder, cluster)
-            l_cent = suc_criterion(center_confounder, center)
+            l_indi =  suc_criterion(individual_confounder, cluster) if use_indi else 0
+            l_cent = suc_criterion(center_confounder, center) if use_cent else 0
 
             if epoch >= mid_1_epochs:
                 alpha1 = min(1.0, (epoch - mid_1_epochs + 1) / mid_1_transition_epochs)
-                l_o_im = ort_criterion(classify_feature, individual_confounder)
-                l_o_cm = ort_criterion(classify_feature, center_confounder)
+                l_o_im = ort_criterion(classify_feature, individual_confounder) if use_indi else 0
+                l_o_cm = ort_criterion(classify_feature, center_confounder) if use_cent else 0
 
                 if epoch >= mid_2_epochs:
                     alpha2 = min(1.0, (epoch - mid_2_epochs + 1) / mid_2_transition_epochs)
-                    y_c_indi = cls_criterion(y_indi, y_cls)
-                    y_c_cent = cls_criterion(y_cent, y_cls)
+                    y_c_indi = cls_criterion(y_indi, y_cls) if use_indi else 0
+                    y_c_cent = cls_criterion(y_cent, y_cls) if use_cent else 0
 
-                    loss = l_c_main + lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm) + lambda2 * alpha2 * (y_c_indi + y_c_cent)
+                    loss = (l_c_main +
+                            lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm) +
+                            lambda2 * alpha2 * (y_c_indi + y_c_cent))
                 else:
-                    loss = l_c_main + lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm)
+                    loss = (l_c_main +
+                            lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm))
             else:
                 loss = l_c_main + lambda1 * (l_indi + l_cent)
 
@@ -698,6 +704,14 @@ if __name__ == '__main__':
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
                         # required=True,
                         help="path to testing dataset")
+    parser.add_argument("--indi", type=int,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the individual branch in causal methods")
+    parser.add_argument("--cent", type=int,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the center branch in causal methods")
     parser.add_argument("--cuda", type=int,
                         default=5,
                         required=False,
@@ -715,6 +729,8 @@ if __name__ == '__main__':
     train_Causal3DNet(
         train_excel=args.train,
         test_excel=args.test,
+        use_indi=args.indi,
+        use_cent=args.cent,
         cuda_id=args.cuda,
         output_dir=args.outdir,
         model_weight=args.weight,
