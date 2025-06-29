@@ -1,8 +1,8 @@
-# Causal3D-Net: A Stable Model for Pancreatic Cancer Diagnosis via Multi-Center Small-Sample Contrast-Enhanced CT
+# Causal3D-Net: 使用多中心校样本对比增强CT的稳定模型用于胰腺癌诊断
 
-## Data Source
+## 数据来源
 
-### private Dataset
+### 私有数据集
 
 <p float="left">
   <a href="http://www.wuxihospital.com" target="_blank">
@@ -22,9 +22,9 @@
   </a>
 </p>
 
-## Preprocessing
+## 预处理
 
-### crop data
+### 裁剪数据
 
 ```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.ROI_data \
@@ -33,7 +33,7 @@
 	--process_num 6
 ```
 
-### extract radiomics features
+### 提取影像组学特征
 
 ```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.extract_radiomics \
@@ -42,9 +42,9 @@
 	--process_num 4
 ```
 
-## Training
+## 训练
 
-### segmentation training
+### 分割训练
 
 ```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
@@ -54,7 +54,7 @@
     --outdir /home/huangdn/Causal3D-Net/src/results
 ```
 
-### classification training
+### 分类训练
 
 ```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
@@ -65,9 +65,9 @@
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
 
-### Ablation
+### 消融实验
 
-#### only individual branch
+#### 仅个人分支
 
 ```
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
@@ -80,7 +80,7 @@
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
 
-#### only center branch
+#### 仅中心分支
 
 ```
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
@@ -93,7 +93,7 @@
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
 
-## Baseline
+## 对比模型
 
 ```
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.baselines.baseline_entry \
