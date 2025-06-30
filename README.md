@@ -1,5 +1,18 @@
 # Causal3D-Net: A Stable Model for Pancreatic Cancer Diagnosis via Multi-Center Small-Sample Contrast-Enhanced CT
 
+<p align="center">
+  <a href="README.md">English</a> |
+  <a href="README_cn.md">中文</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/OS-Ubuntu%2022.04-blue" />
+  <img src="https://img.shields.io/badge/Python-3.10+-red" />
+  <img src="https://img.shields.io/badge/Framework-PyTorch-orange" />
+  <img src="https://img.shields.io/badge/Build-Success-brightgreen" />
+  <img src="https://img.shields.io/badge/License-MIT-blue" />
+  <img src="https://img.shields.io/badge/Release-0.1-blue" />
+</p>
 ## Data Source
 
 ### private Dataset

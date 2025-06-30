@@ -1,5 +1,20 @@
 # Causal3D-Net: 使用多中心校样本对比增强CT的稳定模型用于胰腺癌诊断
 
+<p align="center">
+  <a href="README.md">English</a> |
+  <a href="README_cn.md">中文</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/OS-Ubuntu%2022.04-blue" />
+  <img src="https://img.shields.io/badge/Python-3.10+-red" />
+  <img src="https://img.shields.io/badge/Framework-PyTorch-orange" />
+  <img src="https://img.shields.io/badge/Build-Success-brightgreen" />
+  <img src="https://img.shields.io/badge/License-MIT-blue" />
+  <img src="https://img.shields.io/badge/Release-0.1-blue" />
+</p>
+
+
 ## 数据来源
 
 ### 私有数据集
