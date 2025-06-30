@@ -14,28 +14,6 @@
   <img src="https://img.shields.io/badge/Release-0.1-blue" />
 </p>
 
-## Data Source
-
-### private Dataset
-
-<p float="left">
-  <a href="http://www.wuxihospital.com" target="_blank">
-    <img src="./docs/private_1.jpeg" alt="单位1" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
-  </a>
-  <a href="https://www.wx2h.com" target="_blank">
-    <img src="./docs/private_2.jpeg" alt="单位2" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
-  </a>
-  <a href="https://www.yzsbh.com" target="_blank">
-    <img src="./docs/private_3.jpeg" alt="单位3" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
-  </a>
-  <a href="https://www.zjhospital.net" target="_blank">
-    <img src="./docs/private_4.jpeg" alt="单位4" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
-  </a>
-  <a href="https://www.zs-hospital.sh.cn/zhuanye/" target="_blank">
-    <img src="./docs/private_5.jpeg" alt="单位5" width="100" height="100" style="border-radius:50%; object-fit: cover;" />
-  </a>
-</p>
-
 ## Preprocessing
 
 ### crop data
@@ -117,4 +95,28 @@
     --cuda_id 5 \
     --outdir /home/huangdn/Causal3D-Net/src/results
 ```
+
+## 🤝 Collaborating Institutions
+
+<p align="center">
+  <a href="http://www.wuxihospital.com">
+    <img src="./docs/private_1.jpeg" width="80" style="border-radius: 50%" alt="private_1"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.wx2h.com">
+    <img src="./docs/private_2.jpeg" width="80" style="border-radius: 50%" alt="private_2"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.yzsbh.com">
+    <img src="./docs/private_3.jpeg" width="80" style="border-radius: 50%" alt="private_3"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.zjhospital.net">
+    <img src="./docs/private_4.jpeg" width="80" style="border-radius: 50%" alt="private_4"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.zs-hospital.sh.cn/zhuanye/">
+    <img src="./docs/private_5.jpeg" width="80" style="border-radius: 50%" alt="private_5"/>
+  </a>
+</p>
 
