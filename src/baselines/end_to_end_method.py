@@ -241,11 +241,11 @@ def ct_with_dl(train_excel, test_excel,
 if __name__ == '__main__':
     from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
 
-    patch_size = 384
+    ps = 384
     m = get_model(
         num_classes=2,
-        edge_size=patch_size,
-        model_idx=f'Hybrid2_{patch_size}_401_test',
+        edge_size=ps,
+        model_idx=f'Hybrid2_{ps}_401_test',
         drop_rate=0.0,
         attn_drop_rate=0.0,
         drop_path_rate=0.0,
@@ -259,5 +259,6 @@ if __name__ == '__main__':
                cuda_id=4,
                model=m,
                current_dir="/home/huangdn/Causal3D-Net/src/results/debug",
-               dimension=2)
+               dimension=2,
+               patch_size=ps)
     pass

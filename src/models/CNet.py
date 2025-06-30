@@ -155,5 +155,17 @@ class CNet(nn.Module):
 
 
 if __name__ == "__main__":
+    import torch
 
-    pass
+    batch_size = 4
+    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+
+    input_tensor = torch.randn(batch_size, 3, 224, 224).to(device)
+
+    model = CNet(input_size=224, num_classes=2).to(device)
+
+    outputs = model(input_tensor)
+    print(f"input shape: {input_tensor.shape}")
+    print(f"output shape: {outputs.shape}")
+
+

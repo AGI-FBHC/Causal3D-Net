@@ -21,6 +21,7 @@ from src.models.VGG_2_5D import VGG25D
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
 from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
+from src.models.CNet import CNet
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from sklearn.metrics import (accuracy_score,
@@ -140,7 +141,9 @@ def run_baseline(train_excel_path,
             use_pos_embedding=True,
             use_att_module='SimAM'  # 使用 SimAM 注意力模块
         )
-        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension)
+        test_result = ct_with_dl(train_excel_path, test_excel_path,
+                                 cuda_id, model, current_dir,
+                                 dimension, patch_size)
     elif method == "cnet":
         cite = ("\n\n##############################\n"
                 "Barzekar, H. and Yu, Z., 2022. C-Net: A reliable convolutional neural network for "
@@ -148,9 +151,9 @@ def run_baseline(train_excel_path,
                 "\n##############################\n")
         logging.info(cite)
         dimension = 2
-        patch_size = 384
-        model = None
-        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension)
+        patch_size = 224
+        model = CNet(input_size=patch_size, num_classes=2)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
         pass
     elif method == "neural_transformer":
 
