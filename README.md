@@ -9,10 +9,10 @@
     <img src="./docs/private_1.jpeg" alt="单位1" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
   </a>
   <a href="https://www.wx2h.com" target="_blank">
-    <img src="./docs/private_2.jpg" alt="单位2" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
+    <img src="./docs/private_2.jpeg" alt="单位2" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
   </a>
   <a href="https://www.yzsbh.com" target="_blank">
-    <img src="./docs/private_3.heic" alt="单位3" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
+    <img src="./docs/private_3.jpeg" alt="单位3" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
   </a>
   <a href="https://www.zjhospital.net" target="_blank">
     <img src="./docs/private_4.jpeg" alt="单位4" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />

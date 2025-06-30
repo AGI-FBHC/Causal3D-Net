@@ -9,10 +9,10 @@
     <img src="./docs/private_1.jpeg" alt="单位1" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
   </a>
   <a href="https://www.wx2h.com" target="_blank">
-    <img src="./docs/private_2.jpg" alt="单位2" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
+    <img src="./docs/private_2.jpeg" alt="单位2" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
   </a>
   <a href="https://www.yzsbh.com" target="_blank">
-    <img src="./docs/private_3.heic" alt="单位3" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
+    <img src="./docs/private_3.jpeg" alt="单位3" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
   </a>
   <a href="https://www.zjhospital.net" target="_blank">
     <img src="./docs/private_4.jpeg" alt="单位4" width="100" height="100" style="border-radius:50%; object-fit: cover; margin-right:10px;" />
@@ -67,9 +67,22 @@
 
 ### 消融实验
 
-#### 仅个人分支
+#### 仅主分支
 
+```linux
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 0 \
+    --cent 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
+
+#### 主分支与个人分支
+
+```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
@@ -80,9 +93,9 @@
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
 
-#### 仅中心分支
+#### 主分支与中心分支
 
-```
+```linux
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
