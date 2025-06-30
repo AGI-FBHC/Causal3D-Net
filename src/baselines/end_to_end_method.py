@@ -31,7 +31,9 @@ from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from src.utils.plot_metrics import plot_training_metrics_for_baseline, plot_group_metrics
 
 
-def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
+def ct_with_dl(train_excel, test_excel,
+               cuda_id, model, current_dir,
+               dimension=3, patch_size=384) -> dict:
     test = pd.read_excel(test_excel)
     test_result = {"center": test["center"],
                    "cancer": test["cancer"]}
@@ -42,10 +44,11 @@ def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
     num_epochs = 50
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
+    resize_shape = (50, 256, 256) if dimension == 3 else (50, patch_size, patch_size)  # for Hybrid
     pre_transform = tio.Compose([
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),
-        tio.Resize((50, 256, 256)),
+        tio.Resize(resize_shape),
     ])
     aug_transform = tio.Compose([
         GaussianNoiseTransform(
@@ -126,10 +129,12 @@ def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
     test_transform = pre_transform
     train_dataset = PCDataset(excel_path=train_excel,
                               transform=train_transform,
-                              return_type=0)
+                              return_type=0,
+                              dimension=dimension)
     test_dataset = PCDataset(excel_path=test_excel,
                              transform=test_transform,
-                             return_type=0)
+                             return_type=0,
+                             dimension=dimension)
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               shuffle=True,
@@ -234,5 +239,25 @@ def ct_with_dl(train_excel, test_excel, cuda_id, model, current_dir) -> dict:
 
 
 if __name__ == '__main__':
+    from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
 
+    patch_size = 384
+    m = get_model(
+        num_classes=2,
+        edge_size=patch_size,
+        model_idx=f'Hybrid2_{patch_size}_401_test',
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.0,
+        pretrained_backbone=False,  # 是否加载预训练CNN, 因channel数量改变, 故不可使用原加载预训练权重.
+        use_cls_token=True,
+        use_pos_embedding=True,
+        use_att_module='SimAM'  # 使用 SimAM 注意力模块
+    )
+    ct_with_dl(train_excel="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+               test_excel="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+               cuda_id=4,
+               model=m,
+               current_dir="/home/huangdn/Causal3D-Net/src/results/debug",
+               dimension=2)
     pass

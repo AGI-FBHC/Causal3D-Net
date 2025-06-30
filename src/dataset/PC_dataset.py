@@ -21,7 +21,8 @@ class PCDataset(Dataset):
     def __init__(self, excel_path,
                  transform=None,
                  use_mask=False,
-                 return_type=0):
+                 return_type=0,
+                 dimension=3):
         """
         :param excel_path:
         :param transform:
@@ -33,6 +34,7 @@ class PCDataset(Dataset):
         self.transform = transform
         self.use_mask = use_mask
         self.return_type = return_type
+        self.dimension = dimension
 
     def __len__(self):
         return self.df.shape[0]
@@ -68,6 +70,12 @@ class PCDataset(Dataset):
             X = torch.from_numpy(X)
             msk_label = torch.from_numpy(mask_array)
             pass
+
+        if self.dimension == 2:  # for Hybrid
+            # 移除深度维度 (C=1, D, H, W) -> (C=D, H, W)
+            X = X.squeeze(dim=0)
+            msk_label = msk_label.squeeze(dim=0)
+
         # show_middle_slice(X.squeeze().cpu().numpy(),
         #                   save_name="/home/huangdn/Causal3D-Net/src/logging_record/resized",
         #                   mask=mask_array.squeeze().cpu().numpy())
@@ -91,10 +99,10 @@ if __name__ == '__main__':
     transform = tio.Compose([
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),
-        tio.Resize((40, 160, 256)),
+        tio.Resize((50, 384, 384)),
     ])
-    excel_path = "/home/huangdn/Causal3D-Net/src/dataset/roi_data_finger.xlsx"
-    dataset = PCDataset(excel_path=excel_path, transform=transform, return_type=2)
+    excel_path = "/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx"
+    dataset = PCDataset(excel_path=excel_path, transform=transform, return_type=2, dimension=2)
     loader = DataLoader(dataset,
                               batch_size=batch_size,
                               shuffle=False,

@@ -20,6 +20,7 @@ from src.baselines.end_to_end_method import ct_with_dl
 from src.models.VGG_2_5D import VGG25D
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
+from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from sklearn.metrics import (accuracy_score,
@@ -125,10 +126,31 @@ def run_baseline(train_excel_path,
                 "pancreatic cancer. IEEE Journal of Biomedical and Health Informatics, 27(4), pp.1946-1957."
                 "\n##############################\n")
         logging.info(cite)
-        model = None
-        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
+        dimension = 2
+        patch_size = 384
+        model = get_model(
+            num_classes=2,
+            edge_size=patch_size,
+            model_idx=f'Hybrid2_{patch_size}_401_test',
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.0,
+            pretrained_backbone=False,  # 是否加载预训练CNN, 因channel数量改变, 故不可使用原加载预训练权重.
+            use_cls_token=True,
+            use_pos_embedding=True,
+            use_att_module='SimAM'  # 使用 SimAM 注意力模块
+        )
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension)
     elif method == "cnet":
-
+        cite = ("\n\n##############################\n"
+                "Barzekar, H. and Yu, Z., 2022. C-Net: A reliable convolutional neural network for "
+                "biomedical image classification. Expert Systems with Applications, 187, p.116003."
+                "\n##############################\n")
+        logging.info(cite)
+        dimension = 2
+        patch_size = 384
+        model = None
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension)
         pass
     elif method == "neural_transformer":
 
