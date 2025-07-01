@@ -12,11 +12,11 @@ import torch.nn.functional as F
 class OuterNetwork(nn.Module):
     """四组并行的VGG式特征提取器"""
 
-    def __init__(self):
+    def __init__(self, in_channels=50):
         super().__init__()
         # Block 1 (64 filters)
         self.block1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding='same'),
+            nn.Conv2d(in_channels, 64, kernel_size=3, padding='same'),  # 使用参数
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=3, padding='same'),
             nn.ReLU(),
@@ -85,13 +85,13 @@ class MiddleNetwork(nn.Module):
 class CNet(nn.Module):
     """完整的C-Net架构"""
 
-    def __init__(self, input_size=224, num_classes=2):
+    def __init__(self, input_size=224, in_channels=50, num_classes=2):
         super().__init__()
         # Outer Networks (4组并行)
-        self.outer_net1 = OuterNetwork()
-        self.outer_net2 = OuterNetwork()
-        self.outer_net3 = OuterNetwork()
-        self.outer_net4 = OuterNetwork()
+        self.outer_net1 = OuterNetwork(in_channels=in_channels)
+        self.outer_net2 = OuterNetwork(in_channels=in_channels)
+        self.outer_net3 = OuterNetwork(in_channels=in_channels)
+        self.outer_net4 = OuterNetwork(in_channels=in_channels)
 
         # 计算MiddleNet输入通道数（4×256）
         self.mid_in_channels = 4 * 256
@@ -113,7 +113,8 @@ class CNet(nn.Module):
 
         # 动态计算FC层输入尺寸
         with torch.no_grad():
-            dummy = torch.rand(1, 3, input_size, input_size)
+            # 使用传入的in_channels参数
+            dummy = torch.rand(1, in_channels, input_size, input_size)
             features = self._forward_features(dummy)
             fc_in_features = features.view(-1).shape[0]
 
@@ -158,11 +159,12 @@ if __name__ == "__main__":
     import torch
 
     batch_size = 4
+    patch_size = 224
     device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 
-    input_tensor = torch.randn(batch_size, 3, 224, 224).to(device)
+    input_tensor = torch.randn(batch_size, 50, patch_size, patch_size).to(device)
 
-    model = CNet(input_size=224, num_classes=2).to(device)
+    model = CNet(input_size=patch_size, num_classes=2).to(device)
 
     outputs = model(input_tensor)
     print(f"input shape: {input_tensor.shape}")

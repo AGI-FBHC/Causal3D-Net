@@ -22,6 +22,7 @@ from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
 from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
 from src.models.CNet import CNet
+from src.models.Neural_Transformer import ViTForIPMNClassification
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
 from sklearn.metrics import (accuracy_score,
@@ -154,10 +155,25 @@ def run_baseline(train_excel_path,
         patch_size = 224
         model = CNet(input_size=patch_size, num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
-        pass
     elif method == "neural_transformer":
-
-        pass
+        cite = ("\n\n##############################\n"
+                "Salanitri, F.P., Bellitto, G., Palazzo, S., Irmakci, I., Wallace, M., Bolan, C., Engels, "
+                "M., Hoogenboom, S., Aldinucci, M., Bagci, U. and Giordano, D., 2022, July. "
+                "Neural transformers for intraductal papillary mucosal neoplasms (IPMN) classification "
+                "in MRI images. In 2022 44th annual international conference of the IEEE Engineering "
+                "in Medicine & Biology Society (EMBC) (pp. 475-479). IEEE."
+                "\n##############################\n")
+        logging.info(cite)
+        dimension = 2
+        patch_size = 768
+        model = ViTForIPMNClassification(patch_size=16,
+                                         in_channels=50,
+                                         embed_dim=patch_size,
+                                         depth=12,
+                                         num_heads=12,
+                                         mlp_dim=3072,
+                                         num_classes=2)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
     elif method == "mix_style":
 
         pass
@@ -217,7 +233,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="vit",
+                        default="neural_transformer",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "mix_style", "big_aug", "rand_conv", "adver_conv",
@@ -225,7 +241,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,
-                        default=5,
+                        default=4,
                         help="CUDA ID")
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",
