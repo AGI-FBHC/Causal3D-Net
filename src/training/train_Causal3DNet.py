@@ -263,6 +263,7 @@ def train_seg(train_excel,
 
 def train_Causal3DNet(train_excel: str, test_excel: str,
                       use_indi: int = 1, use_cent: int = 1,
+                      orthogonal: int = 1,
                       cuda_id: int =5,
                       output_dir: str = "/home/huangdn/Causal3D-Net/src/results",
                       model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
@@ -286,7 +287,9 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
     logging.getLogger().addHandler(console)
 
     info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
-                f"center branch: {'Yes' if use_cent else 'No'} in causal module.")
+                f"center branch: {'Yes' if use_cent else 'No'}, "
+                f"orthogonal loss: {'Yes' if orthogonal else 'No'} in causal module.")
+
     logging.info(info_smg)
     batch_size = 8
     initial_lr = 1e-3
@@ -462,8 +465,10 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
 
             if epoch >= mid_1_epochs:
                 alpha1 = min(1.0, (epoch - mid_1_epochs + 1) / mid_1_transition_epochs)
-                l_o_im = ort_criterion(classify_feature, individual_confounder) if use_indi else 0
-                l_o_cm = ort_criterion(classify_feature, center_confounder) if use_cent else 0
+                l_o_im = ort_criterion(classify_feature, individual_confounder) \
+                    if use_indi and orthogonal else 0
+                l_o_cm = ort_criterion(classify_feature, center_confounder) \
+                    if use_cent and orthogonal else 0
 
                 if epoch >= mid_2_epochs:
                     alpha2 = min(1.0, (epoch - mid_2_epochs + 1) / mid_2_transition_epochs)
@@ -712,6 +717,10 @@ if __name__ == '__main__':
                         default=1,
                         choices=[0, 1],
                         help="whether to use the center branch in causal methods")
+    parser.add_argument("--orth", type=float,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the orthogonal loss in causal methods")
     parser.add_argument("--cuda", type=int,
                         default=5,
                         required=False,
@@ -731,6 +740,7 @@ if __name__ == '__main__':
         test_excel=args.test,
         use_indi=args.indi,
         use_cent=args.cent,
+        orthogonal=args.orth,
         cuda_id=args.cuda,
         output_dir=args.outdir,
         model_weight=args.weight,
