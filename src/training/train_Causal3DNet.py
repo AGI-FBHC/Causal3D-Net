@@ -288,7 +288,7 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
 
     info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
                 f"center branch: {'Yes' if use_cent else 'No'}, "
-                f"orthogonal loss: {'Yes' if orthogonal else 'No'} in causal module.")
+                f"orthogonal loss: {'Yes' if orthogonal else 'No'}, in causal module.")
 
     logging.info(info_smg)
     batch_size = 8

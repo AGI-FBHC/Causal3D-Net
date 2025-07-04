@@ -106,29 +106,34 @@ conda env create -f environment.yaml
 ### segmentation training
 
 ```linux
-/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
-    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
-    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
-    --cuda 5 \
-    --outdir /home/huangdn/Causal3D-Net/src/results
+python -m src.training.train_Causal3DNet \
+  --train <train_dataset_path> \
+  --test <test_dataset_path> \
+  [--cuda <gpu_id>] \
+  [--outdir <output_dir>]
 ```
 
 ### classification training
 
 ```linux
-/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
-    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
-    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
-    --cuda 5 \
-    --outdir /home/huangdn/Causal3D-Net/src/results \
-    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+python -m src.training.train_Causal3DNet \
+  --train <train_excel_path> \
+  --test <test_excel_path> \
+  [--indi {0,1}] \
+  [--cent {0,1}] \
+  [--orth {0,1}] \
+  --cuda <gpu_id> \
+  --outdir <output_dir> \
+  --weight <segmentation_model_path>
 ```
 
-### Ablation
+## Ablation
+
+### Using orthogonal constraints
 
 #### main branch only
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
@@ -141,7 +146,7 @@ conda env create -f environment.yaml
 
 #### main branch and individual branch
 
-```
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
@@ -154,12 +159,70 @@ conda env create -f environment.yaml
 
 #### main branch and center branch
 
-```
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
     --indi 0 \
     --cent 1 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+### Without using orthogonal constraints
+
+#### main branch only
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 0 \
+    --cent 0 \
+    --orth 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### main branch and individual branch
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 1 \
+    --cent 0 \
+    --orth 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### main branch and center branch
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 0 \
+    --cent 1 \
+    --orth 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### three branch
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 1 \
+    --cent 1 \
+    --orth 0 \
     --cuda 5 \
     --outdir /home/huangdn/Causal3D-Net/src/results \
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth

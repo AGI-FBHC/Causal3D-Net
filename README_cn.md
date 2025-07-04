@@ -85,7 +85,7 @@ conda env create -f environment.yaml
 
 ### 裁剪数据
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.ROI_data \
 	--input /home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx \
 	--outdir /home/huangdn/Causal3D-Net/src/dataset \
@@ -94,7 +94,7 @@ conda env create -f environment.yaml
 
 ### 提取影像组学特征
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.preprocessing.extract_radiomics \
 	--input /home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx \
 	--output /home/huangdn/Causal3D-Net/src/dataset/radiomics_features.xlsx \
@@ -105,7 +105,7 @@ conda env create -f environment.yaml
 
 ### 分割训练
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
@@ -115,7 +115,7 @@ conda env create -f environment.yaml
 
 ### 分类训练
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
@@ -124,16 +124,19 @@ conda env create -f environment.yaml
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
 ```
 
-### 消融实验
+## 消融实验
+
+### 使用正交约束
 
 #### 仅主分支
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
     --indi 0 \
     --cent 0 \
+    --orth 1 \
     --cuda 5 \
     --outdir /home/huangdn/Causal3D-Net/src/results \
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
@@ -141,12 +144,13 @@ conda env create -f environment.yaml
 
 #### 主分支与个人分支
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
     --indi 1 \
     --cent 0 \
+    --orth 1 \
     --cuda 5 \
     --outdir /home/huangdn/Causal3D-Net/src/results \
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
@@ -154,12 +158,71 @@ conda env create -f environment.yaml
 
 #### 主分支与中心分支
 
-```linux
+```sh
 /home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
     --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
     --indi 0 \
     --cent 1 \
+    --orth 1 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+### 不使用正交约束
+
+#### 仅主分支
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 0 \
+    --cent 0 \
+    --orth 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### 主分支与个人分支
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 1 \
+    --cent 0 \
+    --orth 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### 主分支与中心分支
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 0 \
+    --cent 1 \
+    --orth 0 \
+    --cuda 5 \
+    --outdir /home/huangdn/Causal3D-Net/src/results \
+    --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
+```
+
+#### 三分支
+
+```sh
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+    --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --indi 1 \
+    --cent 1 \
+    --orth 0 \
     --cuda 5 \
     --outdir /home/huangdn/Causal3D-Net/src/results \
     --weight /home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/last_model.pth
