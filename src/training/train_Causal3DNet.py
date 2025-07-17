@@ -12,6 +12,8 @@ from tqdm import tqdm
 from datetime import datetime
 from collections import defaultdict
 
+from typing import Union
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,6 +31,7 @@ from sklearn.metrics import (accuracy_score,
                              precision_score,
                              f1_score,
                              confusion_matrix)
+from sklearn.model_selection import KFold, StratifiedKFold
 
 from src.dataset.PC_dataset import PCDataset
 from src.models.Causal3DNet import SegNet, Causal3DNet
@@ -265,32 +268,45 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
                       use_indi: int = 1, use_cent: int = 1,
                       orthogonal: int = 1,
                       cuda_id: int =5,
-                      output_dir: str = "/home/huangdn/Causal3D-Net/src/results",
+                      output_dir: Union[str, None] = "/home/huangdn/Causal3D-Net/src/results",
                       model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
-                                          "2025-06-21_06-49-30/last_model.pth"):
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    current_dir = os.path.join(output_dir, current_time)
-    os.makedirs(current_dir, exist_ok=True)
-    diagnose_dir = os.path.join(output_dir, current_time, "diagnose")
-    os.makedirs(diagnose_dir, exist_ok=True)
-    log_filename = os.path.join(current_dir, "train.log")
-    best_model_save_path = os.path.join(current_dir, "best_model.pth")
-    last_model_save_path = os.path.join(current_dir, "last_model.pth")
-    logging.basicConfig(
-        filename=log_filename,
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        filemode='w'
-    )
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    logging.getLogger().addHandler(console)
+                                          "2025-06-21_06-49-30/last_model.pth") -> dict:
+
+    class NullLogger:
+        def info(self, *args, **kwargs): pass
+        def warning(self, *args, **kwargs): pass
+        def error(self, *args, **kwargs): pass
+
+    logger = NullLogger()
+    current_dir = None
+    diagnose_dir = None
+    best_model_save_path = None
+    last_model_save_path = None
+
+    if output_dir:
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        current_dir = os.path.join(output_dir, current_time)
+        diagnose_dir = os.path.join(current_dir, "diagnose")
+        os.makedirs(diagnose_dir, exist_ok=True)
+
+        log_filename = os.path.join(current_dir, "train.log")
+        logging.basicConfig(
+            filename=log_filename,
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            filemode='w'
+        )
+        logger = logging.getLogger()
+        logger.addHandler(logging.StreamHandler())
+
+        best_model_save_path = os.path.join(current_dir, "best_model.pth")
+        last_model_save_path = os.path.join(current_dir, "last_model.pth")
 
     info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
                 f"center branch: {'Yes' if use_cent else 'No'}, "
                 f"orthogonal loss: {'Yes' if orthogonal else 'No'}, in causal module.")
+    logger.info(info_smg)
 
-    logging.info(info_smg)
     batch_size = 8
     initial_lr = 1e-3
     weight_decay = 3e-5
@@ -622,55 +638,144 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
                         f"Specificity: {metrics['specificity']:.4f}, "
                         f"Precision: {metrics['precision']:.4f}, "
                         f"F1: {metrics['f1']:.4f}\n")
-        logging.info(log_msg)
+        logger.info(log_msg)
 
-        if test_auc > best_auc:
-            best_auc = test_auc
-            torch.save(model.state_dict(), best_model_save_path)
-            logging.info(f"✅ Best model updated at epoch {epoch+1}, AUC: {best_auc:.4f}")
+        if output_dir is not None:
+            if test_auc > best_auc:
+                best_auc = test_auc
+                torch.save(model.state_dict(), best_model_save_path)
+                logger.info(f"✅ Best model updated at epoch {epoch+1}, AUC: {best_auc:.4f}")
 
-        if epoch >= start_record_epoch:
-            test_result = pd.DataFrame({
-                "filename": test_filenames,
-                "center_id": test_centers,
-                "true_label": test_targets,
-                "predicted_prob": test_probs,
-                "predicted_label": test_preds,
-            })
-            test_result.to_csv(os.path.join(diagnose_dir, f"test_result_for_{epoch+1}.csv"), index=False)
+            if epoch >= start_record_epoch:
+                test_result = pd.DataFrame({
+                    "filename": test_filenames,
+                    "center_id": test_centers,
+                    "true_label": test_targets,
+                    "predicted_prob": test_probs,
+                    "predicted_label": test_preds,
+                })
+                test_result.to_csv(os.path.join(diagnose_dir, f"test_result_for_{epoch+1}.csv"), index=False)
 
-        torch.save(model.state_dict(), last_model_save_path)
+            torch.save(model.state_dict(), last_model_save_path)
 
-        plot_training_metrics(
-            all_train_losses,
-            all_train_cls_losses,
-            all_test_cls_losses,
-            all_train_accs,
-            all_test_accs,
-            all_train_aucs,
-            all_test_aucs,
-            all_train_sensitivitys,
-            all_test_sensitivitys,
-            all_train_specificitys,
-            all_test_specificitys,
-            all_train_precisions,
-            all_test_precisions,
-            all_train_f1s,
-            all_test_f1s,
-            save_path=os.path.join(current_dir, "training_metrics.png"),
+            plot_training_metrics(
+                all_train_losses,
+                all_train_cls_losses,
+                all_test_cls_losses,
+                all_train_accs,
+                all_test_accs,
+                all_train_aucs,
+                all_test_aucs,
+                all_train_sensitivitys,
+                all_test_sensitivitys,
+                all_train_specificitys,
+                all_test_specificitys,
+                all_train_precisions,
+                all_test_precisions,
+                all_train_f1s,
+                all_test_f1s,
+                save_path=os.path.join(current_dir, "training_metrics.png"),
+            )
+
+            plot_group_metrics(
+                group_accs=group_accs,
+                group_aucs=group_aucs,
+                group_sensitivitys=group_sensitivitys,
+                group_specificitys=group_specificitys,
+                group_precisions=group_precisions,
+                group_f1s=group_f1s,
+                save_path=os.path.join(current_dir, "group_metrics.png")
+            )
+
+    final_metrics = {
+        "accuracy": all_test_accs[-1],
+        "auc": all_test_aucs[-1],
+        "sensitivity": all_test_sensitivitys[-1],
+        "specificity": all_test_specificitys[-1],
+        "precision": all_test_precisions[-1],
+        "f1": all_test_f1s[-1],
+    }
+
+    return final_metrics
+
+
+def cross_validate_Causal3DNet(train_excel: str, output_dir: str, folds: int = 10, cuda_id: int = 5) -> dict:
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    current_dir = os.path.join(output_dir, current_time)
+    os.makedirs(current_dir, exist_ok=True)
+    log_filename = os.path.join(current_dir, "cross_train.log")
+    logging.basicConfig(
+        filename=log_filename,
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        filemode='w'
+    )
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger().addHandler(console)
+
+    data = pd.read_excel(train_excel)
+    targets = data["cancer"].values
+
+
+    skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
+
+    all_metrics = defaultdict(list)
+
+    for fold, (train_idx, val_idx) in enumerate(skf.split(data, targets)):
+        logging.info(f"\n🚀 Fold {fold + 1}/{folds}")
+        train_fold = data.iloc[train_idx].reset_index(drop=True)
+        val_fold = data.iloc[val_idx].reset_index(drop=True)
+
+        train_path = os.path.join(current_dir, f"cv_train_fold_{fold + 1}.xlsx")
+        val_path = os.path.join(current_dir, f"cv_val_fold_{fold + 1}.xlsx")
+        train_fold.to_excel(train_path, index=False)
+        val_fold.to_excel(val_path, index=False)
+
+        metrics = train_Causal3DNet(
+            train_excel=train_path,
+            test_excel=val_path,
+            use_indi=1,
+            use_cent=1,
+            orthogonal=1,
+            cuda_id=cuda_id,
+            output_dir=None
         )
 
-        plot_group_metrics(
-            group_accs=group_accs,
-            group_aucs=group_aucs,
-            group_sensitivitys=group_sensitivitys,
-            group_specificitys=group_specificitys,
-            group_precisions=group_precisions,
-            group_f1s=group_f1s,
-            save_path=os.path.join(current_dir, "group_metrics.png")
-        )
-    pass
+        for key, value in metrics.items():
+            all_metrics[key].append(value)
 
+    summary = {}
+    for key, values in all_metrics.items():
+        mean = np.mean(values)
+        std = np.std(values)
+        summary[key] = {
+            "folds": values,
+            "mean": mean,
+            "std": std
+        }
+
+    # Save to CSV
+    rows = []
+    for i in range(folds):
+        row = {"fold": i + 1}
+        for metric in summary:
+            row[metric] = summary[metric]["folds"][i]
+        rows.append(row)
+
+    mean_row = {"fold": "mean"}
+    std_row = {"fold": "std"}
+    for metric in summary:
+        mean_row[metric] = summary[metric]["mean"]
+        std_row[metric] = summary[metric]["std"]
+    rows.append(mean_row)
+    rows.append(std_row)
+
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(current_dir, "cross_validation_results.csv"), index=False)
+    logging.info("\n✅ Cross-validation results saved to 'cross_validation_results.csv'")
+
+    return summary
 
 
 if __name__ == '__main__':
@@ -700,49 +805,72 @@ if __name__ == '__main__':
     #     output_dir=args.outdir
     # )
 
-    parser = argparse.ArgumentParser(description="Causal 3D Net training")
+    # parser = argparse.ArgumentParser(description="Causal 3D Net training")
+    # parser.add_argument("--train", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+    #                     # required=True,
+    #                     help="path to training dataset")
+    # parser.add_argument("--test", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+    #                     # required=True,
+    #                     help="path to testing dataset")
+    # parser.add_argument("--indi", type=int,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the individual branch in causal methods")
+    # parser.add_argument("--cent", type=int,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the center branch in causal methods")
+    # parser.add_argument("--orth", type=float,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the orthogonal loss in causal methods")
+    # parser.add_argument("--cuda", type=int,
+    #                     default=5,
+    #                     required=False,
+    #                     help="index of GPU to use")
+    # parser.add_argument("--outdir", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results",
+    #                     required=False,
+    #                     help="output directory")
+    # parser.add_argument("--weight", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results/"
+    #                             "2025-06-21_06-49-30/best_model.pth",
+    #                     required=False,
+    #                     help="segmentation trained model weight")
+    # args = parser.parse_args()
+    # train_Causal3DNet(
+    #     train_excel=args.train,
+    #     test_excel=args.test,
+    #     use_indi=args.indi,
+    #     use_cent=args.cent,
+    #     orthogonal=args.orth,
+    #     cuda_id=args.cuda,
+    #     output_dir=args.outdir,
+    #     model_weight=args.weight,
+    # )
+
+    parser = argparse.ArgumentParser(description="Causal 3D Net cross-validation training")
     parser.add_argument("--train", type=str,
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
-                        # required=True,
-                        help="path to training dataset")
-    parser.add_argument("--test", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
-                        # required=True,
-                        help="path to testing dataset")
-    parser.add_argument("--indi", type=int,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the individual branch in causal methods")
-    parser.add_argument("--cent", type=int,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the center branch in causal methods")
-    parser.add_argument("--orth", type=float,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the orthogonal loss in causal methods")
+                        required=True,
+                        help="path to training dataset (Excel file)")
+    parser.add_argument("--folds", type=int,
+                        default=10,
+                        help="number of cross-validation folds")
     parser.add_argument("--cuda", type=int,
                         default=5,
-                        required=False,
                         help="index of GPU to use")
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",
-                        required=False,
-                        help="output directory")
-    parser.add_argument("--weight", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/results/"
-                                "2025-06-21_06-49-30/best_model.pth",
-                        required=False,
-                        help="segmentation trained model weight")
+                        help="output directory for results and logs")
     args = parser.parse_args()
-    train_Causal3DNet(
+
+    summary = cross_validate_Causal3DNet(
         train_excel=args.train,
-        test_excel=args.test,
-        use_indi=args.indi,
-        use_cent=args.cent,
-        orthogonal=args.orth,
-        cuda_id=args.cuda,
         output_dir=args.outdir,
-        model_weight=args.weight,
+        folds=args.folds,
+        cuda_id=args.cuda
     )
     pass
