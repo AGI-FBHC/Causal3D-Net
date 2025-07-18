@@ -14,6 +14,7 @@ from collections import defaultdict
 
 from typing import Union
 
+import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -58,6 +59,37 @@ from src.metric.compute_score import compute_dice_score, specificity_score
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+
+def compute_lambdas(loss_main, loss_i, loss_c, mode='reward_good', T=1.0):
+    """
+    根据三个 loss 计算 lambda_main、lambda1、lambda2，使三者之和为 1
+    参数:
+        loss_main: float 主任务损失
+        loss_i: float 辅助任务 i 损失
+        loss_c: float 辅助任务 c 损失
+        mode: 'reward_good' = loss 小权重大
+              'reward_bad' = loss 大权重大
+        T: 温度系数，越小差异越大，越大越平滑
+    返回:
+        lambda_main, lambda1, lambda2
+    """
+    if mode == 'reward_good':
+        v_main = math.exp(-loss_main / T)
+        v_i = math.exp(-loss_i / T)
+        v_c = math.exp(-loss_c / T)
+    elif mode == 'reward_bad':
+        v_main = math.exp(loss_main / T)
+        v_i = math.exp(loss_i / T)
+        v_c = math.exp(loss_c / T)
+    else:
+        raise ValueError("mode 必须是 'reward_good' 或 'reward_bad'")
+
+    s = v_main + v_i + v_c
+    lambda_m = v_main / s
+    lambda_i = v_i / s
+    lambda_c = v_c / s
+    return lambda_m, lambda_i, lambda_c
 
 
 def train_seg(train_excel,
@@ -313,7 +345,6 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
     num_epochs = 50
     mid_1_epochs = 10
     mid_2_epochs = 20
-    lambda1, lambda2 = 1, 1
     mid_1_transition_epochs = 5
     mid_2_transition_epochs = 5
     start_record_epoch = 10
@@ -488,17 +519,26 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
 
                 if epoch >= mid_2_epochs:
                     alpha2 = min(1.0, (epoch - mid_2_epochs + 1) / mid_2_transition_epochs)
-                    y_c_indi = cls_criterion(y_indi, y_cls) if use_indi else 0
-                    y_c_cent = cls_criterion(y_cent, y_cls) if use_cent else 0
+                    l_c_indi = cls_criterion(y_indi, y_cls) if use_indi else 0
+                    l_c_cent = cls_criterion(y_cent, y_cls) if use_cent else 0
 
-                    loss = (l_c_main +
-                            lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm) +
-                            lambda2 * alpha2 * (y_c_indi + y_c_cent))
+                    lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
+                                                                   (l_indi + l_o_im + l_c_indi).item(),
+                                                                   (l_cent + l_o_cm + l_c_cent).item())
+                    loss = (lambda_m * l_c_main +
+                            alpha1 * (lambda_i * (l_indi + l_o_im) + lambda_c * (l_cent + l_o_cm)) +
+                            alpha2 * (lambda_i * l_c_indi + lambda_c * l_c_cent))
                 else:
-                    loss = (l_c_main +
-                            lambda1 * alpha1 * (l_indi + l_cent + l_o_im + l_o_cm))
+                    lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
+                                                                   (l_indi + l_o_im).item(),
+                                                                   (l_cent + l_o_cm).item())
+                    loss = (lambda_m * l_c_main +
+                            alpha1 * (lambda_i * (l_indi + l_o_im) + lambda_c * (l_cent + l_o_cm)))
             else:
-                loss = l_c_main + lambda1 * (l_indi + l_cent)
+                lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
+                                                               l_indi.item(),
+                                                               l_cent.item())
+                loss = lambda_m * l_c_main + lambda_i * l_indi + lambda_c * l_cent
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
