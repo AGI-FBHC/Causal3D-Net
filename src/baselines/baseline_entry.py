@@ -23,8 +23,10 @@ from src.models.ResNet import generate_model
 from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
 from src.models.CNet import CNet
 from src.models.Neural_Transformer import ViTForIPMNClassification
+from src.models.PANDA import MultiTask3DCNN
 from src.preprocessing.extract_radiomics import extract_radiomics_features
 from src.metric.compute_score import compute_multi_metrics, evaluate_test_result
+from src.utils.init_weights import init_weights_kaiming, load_shared_weights
 from sklearn.metrics import (accuracy_score,
                              roc_auc_score,
                              recall_score,
@@ -174,6 +176,19 @@ def run_baseline(train_excel_path,
                                          mlp_dim=3072,
                                          num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
+    elif method == "PANDA":
+        cite = ("Cao, K., Xia, Y., Yao, J., Han, X., Lambert, L., Zhang, T., Tang, W., Jin, G., "
+                "Jiang, H., Fang, X. and Nogues, I., 2023. Large-scale pancreatic cancer detection "
+                "via non-contrast CT and deep learning. Nature medicine, 29(12), pp.3033-3043.")
+        logging.info(cite)
+        weight_path = "/home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/best_model.pth"
+        model = MultiTask3DCNN(mask_num=2, cls_num=2)
+        model = load_shared_weights(model, weight_path=weight_path)
+        test_result = ct_with_dl(train_excel_path,
+                                 test_excel_path,
+                                 cuda_id, model,
+                                 current_dir,
+                                 resize_shape=(40, 160, 256))
     elif method == "mix_style":
 
         pass
@@ -233,9 +248,10 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="neural_transformer",
+                        default="PANDA",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
+                                 "PANDA",
                                  "mix_style", "big_aug", "rand_conv", "adver_conv",
                                  "causality_aug", "chen", "chu", "liu", "zhu", "xia"],
                         # required=True,

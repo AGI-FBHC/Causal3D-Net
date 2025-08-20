@@ -24,6 +24,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
 
         optimizer.zero_grad()
         outputs = model(X)
+        outputs = outputs[-1] if type(outputs) is tuple else outputs
         loss = criterion(outputs, cls_label)
         loss.backward()
         optimizer.step()
@@ -55,6 +56,7 @@ def test_one_epoch(model, test_loader, criterion, device):
             X, cls_label = X.to(device), cls_label.to(device)
 
             outputs = model(X)
+            outputs = outputs[-1] if type(outputs) is tuple else outputs
             loss = criterion(outputs, cls_label)
             total_loss += loss.item()
 

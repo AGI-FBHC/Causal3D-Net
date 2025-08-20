@@ -33,6 +33,7 @@ from src.utils.plot_metrics import plot_training_metrics_for_baseline, plot_grou
 
 def ct_with_dl(train_excel, test_excel,
                cuda_id, model, current_dir,
+               resize_shape=(50, 256, 256),
                dimension=3, patch_size=384) -> dict:
     test = pd.read_excel(test_excel)
     test_result = {"center": test["center"],
@@ -44,7 +45,7 @@ def ct_with_dl(train_excel, test_excel,
     num_epochs = 50
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
-    resize_shape = (50, 256, 256) if dimension == 3 else (50, patch_size, patch_size)  # for 2D
+    resize_shape = resize_shape if dimension == 3 else (50, patch_size, patch_size)  # for 2D
     pre_transform = tio.Compose([
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),

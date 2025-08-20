@@ -1,10 +1,11 @@
 #!/bin/sh
 
 
-/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.training.train_Causal3DNet \
+/home/huangdn/anaconda/envs/Causal3DNet/bin/python -m src.baselines.baseline_entry \
     --train /home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx \
-    --folds 10 \
-    --cuda 5 \
+    --test /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx \
+    --method PANDA \
+    --cuda_id 5 \
     --outdir /home/huangdn/Causal3D-Net/src/results
 
 
