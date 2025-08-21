@@ -192,4 +192,4 @@ Icon
 
 *.csv
 **/feature_distribution_combined/
-**/src/result/
+/src/results/
