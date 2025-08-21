@@ -177,9 +177,11 @@ def run_baseline(train_excel_path,
                                          num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
     elif method == "PANDA":
-        cite = ("Cao, K., Xia, Y., Yao, J., Han, X., Lambert, L., Zhang, T., Tang, W., Jin, G., "
+        cite = ("\n\n##############################\n"
+                "Cao, K., Xia, Y., Yao, J., Han, X., Lambert, L., Zhang, T., Tang, W., Jin, G., "
                 "Jiang, H., Fang, X. and Nogues, I., 2023. Large-scale pancreatic cancer detection "
-                "via non-contrast CT and deep learning. Nature medicine, 29(12), pp.3033-3043.")
+                "via non-contrast CT and deep learning. Nature medicine, 29(12), pp.3033-3043."
+                "\n##############################\n")
         logging.info(cite)
         weight_path = "/home/huangdn/Causal3D-Net/src/results/2025-06-21_06-49-30/best_model.pth"
         model = MultiTask3DCNN(mask_num=2, cls_num=2)
