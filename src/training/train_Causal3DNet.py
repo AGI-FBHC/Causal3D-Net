@@ -739,7 +739,12 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
     return final_metrics
 
 
-def cross_validate_Causal3DNet(train_excel: str, output_dir: str, folds: int = 10, cuda_id: int = 5) -> dict:
+def cross_validate_Causal3DNet(train_excel: str,
+                               output_dir: str,
+                               folds: int = 10,
+                               cuda_id: int = 5,
+                               model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
+                                                   "2025-06-21_06-49-30/last_model.pth") -> dict:
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     current_dir = os.path.join(output_dir, current_time)
     os.makedirs(current_dir, exist_ok=True)
@@ -779,7 +784,8 @@ def cross_validate_Causal3DNet(train_excel: str, output_dir: str, folds: int = 1
             use_cent=1,
             orthogonal=1,
             cuda_id=cuda_id,
-            output_dir=None
+            output_dir=None,
+            model_weight=model_weight,
         )
 
         for key, value in metrics.items():
@@ -905,12 +911,18 @@ if __name__ == '__main__':
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",
                         help="output directory for results and logs")
+    parser.add_argument("--weight", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/results/"
+                                "2025-06-21_06-49-30/best_model.pth",
+                        required=False,
+                        help="segmentation trained model weight")
     args = parser.parse_args()
 
     summary = cross_validate_Causal3DNet(
         train_excel=args.train,
         output_dir=args.outdir,
         folds=args.folds,
-        cuda_id=args.cuda
+        cuda_id=args.cuda,
+        model_weight=args.weight,
     )
     pass
