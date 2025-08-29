@@ -61,7 +61,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-def compute_lambdas(loss_main, loss_i, loss_c, mode='reward_good', T=1.0):
+def compute_lambdas(loss_main, loss_i, loss_c, mode='none', T=1.0):
     """
     根据三个 loss 计算 lambda_main、lambda1、lambda2，使三者之和为 1
     参数:
@@ -82,8 +82,10 @@ def compute_lambdas(loss_main, loss_i, loss_c, mode='reward_good', T=1.0):
         v_main = math.exp(loss_main / T)
         v_i = math.exp(loss_i / T)
         v_c = math.exp(loss_c / T)
+    elif mode == 'none':
+        return 1, 1, 1
     else:
-        raise ValueError("mode 必须是 'reward_good' 或 'reward_bad'")
+        raise ValueError("mode 必须是 'reward_good' , 'reward_bad' 或 'none'")
 
     s = v_main + v_i + v_c
     lambda_m = v_main / s
