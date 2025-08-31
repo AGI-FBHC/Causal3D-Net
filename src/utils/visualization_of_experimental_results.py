@@ -95,6 +95,7 @@ def vis_ablation(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ablat
     x_positions = np.arange(n_dataset) * (group_width + group_gap)
 
     palette = sns.color_palette("Set2", n_group)
+    palette[-1], palette[-2] = palette[-2], palette[-1]
 
     plt.figure(figsize=(10, 6))
 
@@ -127,10 +128,51 @@ def vis_ablation(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ablat
     plt.show()
 
 
+def vis_sota_model(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/compare_sota.xlsx",
+                   save_path="/home/huangdn/Causal3D-Net/src/logging_record/model_ablation.png"):
+    excel = pd.read_excel(excel_path)
+
+    metrics = ['Accuracy', 'AUC', 'Sensitivity', 'Specificity', 'Precision', 'F1']
+    metric_labels = ['Acc', 'AUC', 'Sen', 'Spe', 'Prec', 'F1']  # 缩写
+    datasets = excel['dataset'].unique()
+    num_metrics = len(metrics)
+    angles = np.linspace(0, 2 * np.pi, num_metrics, endpoint=False).tolist()
+    angles += angles[:1]  # 闭合雷达图
+
+    ylims = {'CV': (0.6, 1), 'test I': (0.4, 1), 'test II': (0.3, 1)}
+
+    for dataset in datasets:
+        df_subset = excel[excel['dataset'] == dataset]
+
+        plt.figure(figsize=(8, 8))
+        ax = plt.subplot(111, polar=True)
+
+        for _, row in df_subset.iterrows():
+            values = row[metrics].tolist()
+            values += values[:1]  # 闭合
+            ax.plot(angles, values, label=row['Methods'], linewidth=2)
+            ax.fill(angles, values, alpha=0.1)
+
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(metric_labels)  # 使用缩写显示
+
+        ymin, ymax = ylims.get(dataset, (0, 1))
+        ax.set_ylim(ymin, ymax)
+        ax.set_yticks(np.linspace(ymin, ymax, 6))
+        ax.set_yticklabels([f"{x:.1f}" for x in np.linspace(ymin, ymax, 6)])
+
+        ax.set_title(dataset, fontsize=16)
+        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+        plt.show()
+
+
 if __name__ == '__main__':
     # vis_10_folds_cv()
-    vis_ablation()
+    # vis_ablation()
+    vis_sota_model()
     pass
+
+
 
 
 
