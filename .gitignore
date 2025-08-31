@@ -193,3 +193,4 @@ Icon
 *.csv
 **/feature_distribution_combined/
 /src/results/
+/src/logging_record/
