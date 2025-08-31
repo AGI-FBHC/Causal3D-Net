@@ -114,7 +114,7 @@ def vis_ablation(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ablat
     # 设置x轴刻度在每组的中心
     plt.xticks(x_positions + group_width/2 - bar_width/2, datasets)
 
-    plt.ylabel("ACC")
+    # plt.ylabel("ACC")
     plt.ylim(0.65, 1)
     plt.legend(
         title="",
@@ -129,41 +129,63 @@ def vis_ablation(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ablat
 
 
 def vis_sota_model(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/compare_sota.xlsx",
-                   save_path="/home/huangdn/Causal3D-Net/src/logging_record/model_ablation.png"):
+                   save_path="/home/huangdn/Causal3D-Net/src/logging_record/compare_sota_models.png"):
     excel = pd.read_excel(excel_path)
 
     metrics = ['Accuracy', 'AUC', 'Sensitivity', 'Specificity', 'Precision', 'F1']
     metric_labels = ['Acc', 'AUC', 'Sen', 'Spe', 'Prec', 'F1']  # 缩写
-    datasets = excel['dataset'].unique()
+    datasets = ['CV', 'test I', 'test II']
     num_metrics = len(metrics)
     angles = np.linspace(0, 2 * np.pi, num_metrics, endpoint=False).tolist()
-    angles += angles[:1]  # 闭合雷达图
+    angles += angles[:1]
 
-    ylims = {'CV': (0.6, 1), 'test I': (0.4, 1), 'test II': (0.3, 1)}
+    ylims = {'CV': (0.1, 1), 'test I': (0.4, 1), 'test II': (0.3, 1)}
 
-    for dataset in datasets:
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6), subplot_kw=dict(polar=True))
+
+    # 统一配色，使用 Set2，颜色数量等于方法数
+    methods = excel['Methods'].unique()
+    n_colors = len(methods)
+    palette = sns.color_palette("Set2", n_colors)
+    color_dict = dict(zip(methods, palette))
+
+    handles, labels = [], []
+
+    for i, dataset in enumerate(datasets):
         df_subset = excel[excel['dataset'] == dataset]
-
-        plt.figure(figsize=(8, 8))
-        ax = plt.subplot(111, polar=True)
+        ax = axes[i]
 
         for _, row in df_subset.iterrows():
             values = row[metrics].tolist()
-            values += values[:1]  # 闭合
-            ax.plot(angles, values, label=row['Methods'], linewidth=2)
-            ax.fill(angles, values, alpha=0.1)
+            values += values[:1]
+
+            method = row['Methods']
+            color = color_dict[method]
+
+            line, = ax.plot(angles, values, label=method, linewidth=2, color=color)
+            ax.fill(angles, values, alpha=0.1, color=color)
+
+            if dataset == datasets[-1]:
+                handles.append(line)
+                labels.append(method)
 
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(metric_labels)  # 使用缩写显示
+        ax.set_xticklabels(metric_labels)
 
         ymin, ymax = ylims.get(dataset, (0, 1))
         ax.set_ylim(ymin, ymax)
         ax.set_yticks(np.linspace(ymin, ymax, 6))
         ax.set_yticklabels([f"{x:.1f}" for x in np.linspace(ymin, ymax, 6)])
 
-        ax.set_title(dataset, fontsize=16)
-        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-        plt.show()
+        ax.set_title(dataset, fontsize=14)
+
+    # 给下方图例留空间，统一一排显示
+    fig.subplots_adjust(bottom=0.05)
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0),
+               ncol=len(labels), fontsize=12, frameon=False)
+
+    plt.savefig(save_path, dpi=600, bbox_inches='tight')  # 如需保存
+    plt.show()
 
 
 if __name__ == '__main__':
