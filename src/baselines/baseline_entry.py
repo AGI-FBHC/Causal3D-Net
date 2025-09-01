@@ -14,8 +14,9 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 
-from src.baselines.radiomics_method import radiomics_with_randomforest
-# from src.baselines.vgg25d_method import ct_with_vgg25d
+from src.baselines.radiomics_method import (radiomics_with_randomforest,
+                                            radiomics_with_SVM,
+                                            radiomics_with_XGBoost)
 from src.baselines.end_to_end_method import ct_with_dl
 from src.models.VGG_2_5D import VGG25D
 from src.models.ViT import ViTClassifier
@@ -191,34 +192,70 @@ def run_baseline(train_excel_path,
                                  cuda_id, model,
                                  current_dir,
                                  resize_shape=(40, 160, 256))
-    elif method == "mix_style":
-
-        pass
-    elif method == "big_aug":
-
-        pass
-    elif method == "rand_conv":
-
-        pass
-    elif method == "adver_conv":
-
-        pass
-    elif method == "causality_aug":
-
-        pass
-    elif method == "chen":
-
-        pass
     elif method == "chu":
+        cite = ("\n\n##############################\n"
+                "Chu, L.C., Park, S., Kawamoto, S., Fouladi, D.F., Shayesteh, S., Zinreich, E.S., Graves, J.S., "
+                "Horton, K.M., Hruban, R.H., Yuille, A.L. and Kinzler, K.W., 2019. Utility of CT radiomics features "
+                "in differentiation of pancreatic ductal adenocarcinoma from normal pancreatic tissue. "
+                "American Journal of Roentgenology, 213(2), pp.349-357."
+                "\n##############################\n")
+        logging.info(cite)
 
-        pass
+        feature_file_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.csv"
+        features = pd.read_csv(feature_file_path) \
+            if os.path.isfile(feature_file_path) \
+            else extract_radiomics_features("/home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx",
+                                            feature_file_path,
+                                            "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
+                                            "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
+                                            8)
+
+        test_result = radiomics_with_randomforest(train_excel, test_excel, features)
     elif method == "liu":
+        cite = ("Liu, K.L., Wu, T., Chen, P.T., Tsai, Y.M., Roth, H., Wu, M.S., Liao, W.C. and Wang, W., 2020. "
+                "Deep learning to distinguish pancreatic cancer tissue from non-cancerous pancreatic tissue: "
+                "a retrospective study with cross-racial external validation. The Lancet Digital Health, 2(6), pp.e303-e313.")
+        logging.info(cite)
+        # VGG $50 \times 50$
 
         pass
-    elif method == "zhu":
-
+    elif method == "chen1":
+        cite = ("Chen, P.T., Chang, D., Yen, H., Liu, K.L., Huang, S.Y., Roth, H., Wu, M.S., Liao, W.C. and Wang, "
+                "W., 2021. Radiomic features at CT can distinguish pancreatic cancer from noncancerous pancreas. "
+                "Radiology: Imaging Cancer, 3(4), p.e210010.")
+        logging.info(cite)
+        # mRMR filter, XGBoost diagnose
+        feature_file_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.csv"
+        features = pd.read_csv(feature_file_path) \
+            if os.path.isfile(feature_file_path) \
+            else extract_radiomics_features("/home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx",
+                                            feature_file_path,
+                                            "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
+                                            "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
+                                            8)
+        test_result = radiomics_with_XGBoost(train_excel, test_excel, features)
         pass
-    elif method == "xia":
+    elif method == "Mukherjee":
+        cite = ("Mukherjee, S., Patra, A., Khasawneh, H., Korfiatis, P., Rajamohan, N., Suman, G., Majumder, "
+                "S., Panda, A., Johnson, M.P., Larson, N.B. and Wright, D.E., 2022. Radiomics-based "
+                "machine-learning models can detect pancreatic cancer on prediagnostic computed tomography scans "
+                "at a substantial lead time before clinical diagnosis. Gastroenterology, 163(5), pp.1435-1446.")
+        logging.info(cite)
+        # LASSO fileter, SVM diagnose
+        feature_file_path = "/home/huangdn/Causal3D-Net/src/dataset/radiomics_features.csv"
+        features = pd.read_csv(feature_file_path) \
+            if os.path.isfile(feature_file_path) \
+            else extract_radiomics_features("/home/huangdn/Causal3D-Net/src/dataset/dataset_for_radiomics_read.xlsx",
+                                            feature_file_path,
+                                            "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
+                                            "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
+                                            8)
+        test_result = radiomics_with_SVM(train_excel, test_excel, features)
+    elif method == "chen2":
+        cite = ("Chen, P.T., Wu, T., Wang, P., Chang, D., Liu, K.L., Wu, M.S., Roth, H.R., Lee, P.C., Liao, W.C. "
+                "and Wang, W., 2023. Pancreatic cancer detection on CT scans with deep learning: a nationwide "
+                "population-based study. Radiology, 306(1), pp.172-182.")
+        logging.info(cite)
 
         pass
     logging.info("✅ Training completed successfully.")
@@ -250,16 +287,16 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="PANDA",
-                        choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
-                                 "hybrid_transformer", "cnet", "neural_transformer",
-                                 "PANDA",
-                                 "mix_style", "big_aug", "rand_conv", "adver_conv",
-                                 "causality_aug", "chen", "chu", "liu", "zhu", "xia"],
+                        default="Mukherjee",
+                        # choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
+                        #          "hybrid_transformer", "cnet", "neural_transformer",
+                        #          "PANDA",
+                        #          "mix_style", "big_aug", "rand_conv", "adver_conv",
+                        #          "causality_aug", "chen", "chu", "liu", "zhu", "xia"],
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,
-                        default=4,
+                        default=1,
                         help="CUDA ID")
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",

@@ -13,6 +13,10 @@ import pandas as pd
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LassoCV
+from sklearn.svm import SVC
+from sklearn.feature_selection import SelectFromModel
+from xgboost import XGBClassifier
 
 
 
@@ -64,6 +68,84 @@ def radiomics_with_randomforest(train_excel, test_excel, features) -> dict:
         "y_pred": y_pred,
         "y_prob": y_prob,
     }
+
+
+def radiomics_with_SVM(train_excel, test_excel, features) -> dict:
+    """Mukherjee, S., Patra, A., Khasawneh, H., Korfiatis, P., Rajamohan, N., Suman, G., Majumder,
+    S., Panda, A., Johnson, M.P., Larson, N.B. and Wright, D.E., 2022. Radiomics-based
+    machine-learning models can detect pancreatic cancer on prediagnostic computed tomography scans
+    at a substantial lead time before clinical diagnosis. Gastroenterology, 163(5), pp.1435-1446."""
+    train_excel['image_path'] = train_excel['image_path'].apply(lambda x: os.path.basename(x))
+    test_excel['image_path'] = test_excel['image_path'].apply(lambda x: os.path.basename(x))
+    features_map = features.set_index('Image')
+    train_features = features_map.loc[train_excel['image_path']].reset_index()
+    test_features = features_map.loc[test_excel['image_path']].reset_index()
+    train_label = train_excel[["cancer"]].values.ravel()
+    train_features = train_features.iloc[:, 39:]
+    test_features = test_features.iloc[:, 39:]
+
+    # 1. 数据预处理
+    train_features, test_features = preprocess_data(train_features, test_features)
+
+    # 2. 使用LASSO模型进行特征筛选(从88个中筛选34个特征)
+    lasso = LassoCV(cv=5, random_state=42, max_iter=5000)
+    lasso.fit(train_features, train_label)
+    selector = SelectFromModel(lasso, prefit=True)
+    train_selected = selector.transform(train_features)
+    test_selected = selector.transform(test_features)
+
+    # 3. 使用SVM进行而分类
+    svm = SVC(kernel='linear', probability=True, random_state=42)
+    svm.fit(train_features, train_label)
+    y_pred = svm.predict(test_features)
+    y_prob = svm.predict_proba(test_features)[:, 1]
+
+    return {
+        "y_pred": y_pred,
+        "y_prob": y_prob,
+    }
+
+
+def radiomics_with_XGBoost(train_excel, test_excel, features) -> dict:
+    train_excel['image_path'] = train_excel['image_path'].apply(lambda x: os.path.basename(x))
+    test_excel['image_path'] = test_excel['image_path'].apply(lambda x: os.path.basename(x))
+    # features = features.iloc[:, 39:]
+    features_map = features.set_index('Image')
+    train_features = features_map.loc[train_excel['image_path']].reset_index()
+    test_features = features_map.loc[test_excel['image_path']].reset_index()
+    train_label = train_excel[["cancer"]].values.ravel()
+    train_features = train_features.iloc[:, 39:]
+    test_features = test_features.iloc[:, 39:]
+
+    # 1. 数据预处理
+    train_features, test_features = preprocess_data(train_features, test_features)
+
+    # 2. 执行mRMR特征选择(MID方法, k=40, 参考原文)
+    train_data_mrmr = pd.concat([train_features, pd.Series(train_label, name='target')], axis=1)
+    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 14)
+    train_features = train_features[selected_features]
+    test_features = test_features[selected_features]
+
+    xgb = XGBClassifier(
+        n_estimators=200,
+        max_depth=5,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        use_label_encoder=False,
+        eval_metric="logloss"
+    )
+    xgb.fit(train_features, train_label)
+
+    y_pred = xgb.predict(test_features)
+    y_prob = xgb.predict_proba(test_features)[:, 1]
+
+    return {
+        "y_pred": y_pred,
+        "y_prob": y_prob,
+    }
+
 
 
 if __name__ == '__main__':
