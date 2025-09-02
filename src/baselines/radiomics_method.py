@@ -96,8 +96,10 @@ def radiomics_with_SVM(train_excel, test_excel, features) -> dict:
 
     # 3. 使用SVM进行而分类
     svm = SVC(kernel='linear', probability=True, random_state=42)
-    svm.fit(train_features, train_label)
-    y_pred = svm.predict(test_features)
+    # svm.fit(train_features, train_label)
+    svm.fit(train_selected, train_label)
+    # y_pred = svm.predict(test_features)
+    y_pred = svm.predict(test_selected)
     y_prob = svm.predict_proba(test_features)[:, 1]
 
     return {

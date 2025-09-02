@@ -17,8 +17,8 @@ import pandas as pd
 from src.baselines.radiomics_method import (radiomics_with_randomforest,
                                             radiomics_with_SVM,
                                             radiomics_with_XGBoost)
-from src.baselines.end_to_end_method import ct_with_dl
-from src.models.VGG_2_5D import VGG25D
+from src.baselines.end_to_end_method import ct_with_dl, patch_with_vgg
+from src.models.VGG import VGG25D, VGG
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
 from src.models.Hybrid_Transformer.Hybrid.getmodel import get_model
@@ -216,8 +216,8 @@ def run_baseline(train_excel_path,
                 "Deep learning to distinguish pancreatic cancer tissue from non-cancerous pancreatic tissue: "
                 "a retrospective study with cross-racial external validation. The Lancet Digital Health, 2(6), pp.e303-e313.")
         logging.info(cite)
-        # VGG $50 \times 50$
-
+        model = VGG(cfg_name="D", num_classes=2, in_channels=1)
+        test_result = patch_with_vgg(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
     elif method == "chen1":
         cite = ("Chen, P.T., Chang, D., Yen, H., Liu, K.L., Huang, S.Y., Roth, H., Wu, M.S., Liao, W.C. and Wang, "
@@ -287,12 +287,11 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="Mukherjee",
-                        # choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
-                        #          "hybrid_transformer", "cnet", "neural_transformer",
-                        #          "PANDA",
-                        #          "mix_style", "big_aug", "rand_conv", "adver_conv",
-                        #          "causality_aug", "chen", "chu", "liu", "zhu", "xia"],
+                        default="liu",
+                        choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
+                                 "hybrid_transformer", "cnet", "neural_transformer",
+                                 "PANDA",
+                                 "chu", "liu", "chen1", "Mukherjee", "chen2"],
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,
