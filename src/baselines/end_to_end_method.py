@@ -246,7 +246,7 @@ def patch_with_vgg(train_excel, test_excel,
     test_result = {"center": test["center"],
                    "cancer": test["cancer"]}
 
-    batch_size = 4
+    batch_size = 128
     initial_lr = 1e-2
     weight_decay = 3e-5
     num_epochs = 500
