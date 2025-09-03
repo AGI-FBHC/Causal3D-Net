@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 
 def vis_10_folds_cv(
-        csv_path="/home/huangdn/Causal3D-Net/src/results/2025-07-17_14-09-09/cross_validation_results.csv",
+        csv_path="/home/huangdn/Causal3D-Net/src/logging_record/cross_validation_results.csv",
         save_path="/home/huangdn/Causal3D-Net/src/logging_record/10_folds_cross_validation_results.png"
 ):
     # 设置字体
@@ -108,8 +108,7 @@ def vis_ablation(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ablat
                 label=name,
                 color=palette[i],
                 edgecolor="black",
-                linewidth=0.5
-                )
+                linewidth=0.5)
 
     # 设置x轴刻度在每组的中心
     plt.xticks(x_positions + group_width/2 - bar_width/2, datasets)
@@ -124,7 +123,7 @@ def vis_ablation(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ablat
         frameon=False  # 去掉外框（可选）
     )
     plt.tight_layout()
-    plt.savefig(save_path, dpi=600, bbox_inches='tight', transparent=False)
+    plt.savefig(save_path, dpi=1000, bbox_inches='tight', transparent=False)
     plt.show()
 
 
@@ -184,7 +183,7 @@ def vis_sota_model(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/com
     fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0),
                ncol=len(labels), fontsize=12, frameon=False)
 
-    plt.savefig(save_path, dpi=600, bbox_inches='tight')  # 如需保存
+    plt.savefig(save_path, dpi=1000, bbox_inches='tight')  # 如需保存
     plt.show()
 
 

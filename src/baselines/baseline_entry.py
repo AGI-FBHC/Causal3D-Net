@@ -17,7 +17,7 @@ import pandas as pd
 from src.baselines.radiomics_method import (radiomics_with_randomforest,
                                             radiomics_with_SVM,
                                             radiomics_with_XGBoost)
-from src.baselines.end_to_end_method import ct_with_dl, patch_with_vgg
+from src.baselines.end_to_end_method import ct_with_dl
 from src.models.VGG import VGG25D, VGG
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
@@ -216,8 +216,8 @@ def run_baseline(train_excel_path,
                 "Deep learning to distinguish pancreatic cancer tissue from non-cancerous pancreatic tissue: "
                 "a retrospective study with cross-racial external validation. The Lancet Digital Health, 2(6), pp.e303-e313.")
         logging.info(cite)
-        model = VGG(cfg_name="D", num_classes=2, in_channels=1)
-        test_result = patch_with_vgg(train_excel_path, test_excel_path, cuda_id, model, current_dir)
+        model = VGG(num_classes=2)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
     elif method == "chen1":
         cite = ("Chen, P.T., Chang, D., Yen, H., Liu, K.L., Huang, S.Y., Roth, H., Wu, M.S., Liao, W.C. and Wang, "
@@ -295,7 +295,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,
-                        default=1,
+                        default=4,
                         help="CUDA ID")
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",

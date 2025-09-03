@@ -15,8 +15,6 @@ from tqdm import tqdm
 
 from src.augmentation.window import *
 import torchio as tio
-import torchvision.transforms as T
-from skimage.transform import resize
 
 
 class PCDataset(Dataset):
@@ -96,73 +94,23 @@ class PCDataset(Dataset):
             return filename, X, cls_label, msk_label, center, cluster
 
 
-class PCPatchDataset(Dataset):
-    def __init__(self, excel_path, transform=None, patch_size=50):
-        super().__init__()
-        self.df = pd.read_excel(excel_path)
-        self.transform = transform
-        self.patch_size = patch_size
-
-    def __len__(self):
-        return self.df.shape[0]
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        row = self.df.iloc[idx]
-        image_path = row["image_path"]
-        label = row["cancer"]
-
-        image_array = np.load(image_path)  # (D, H, W)
-        D, H, W = image_array.shape
-
-        if H < self.patch_size or W < self.patch_size:
-            resized_slices = []
-            for d in range(D):
-                resized_slice = resize(
-                    image_array[d],
-                    (max(H, self.patch_size), max(W, self.patch_size)),
-                    anti_aliasing=True
-                )
-                resized_slices.append(resized_slice)
-            image_array = np.stack(resized_slices, axis=0)
-            H, W = image_array.shape[1], image_array.shape[2]
-
-        d = np.random.randint(0, D)
-        h = np.random.randint(0, H - self.patch_size + 1)
-        w = np.random.randint(0, W - self.patch_size + 1)
-        patch = image_array[d, h:h+self.patch_size, w:w+self.patch_size]  # (50, 50)
-
-        patch = np.expand_dims(patch, axis=0)  # (1, 50, 50)
-        patch = torch.from_numpy(patch).float()
-
-        if self.transform:
-            patch = self.transform(patch)
-
-        return patch, label
-
-
 if __name__ == '__main__':
     batch_size = 4
-    transform = T.Compose([
-        T.Normalize(mean=[0.5], std=[0.5]),
-        T.RandomHorizontalFlip(p=0.5),
-        T.RandomVerticalFlip(p=0.5),
-        T.RandomRotation(degrees=15),
-        T.RandomResizedCrop(size=(50, 50), scale=(0.8, 1.2)),
-        T.ColorJitter(brightness=0.2, contrast=0.2),
+    transform = tio.Compose([
+        Windowing(window_center=70, window_width=340),
+        tio.RescaleIntensity(out_min_max=(0, 1)),
+        tio.Resize((50, 384, 384)),
     ])
     excel_path = "/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx"
-    dataset = PCPatchDataset(excel_path=excel_path, transform=transform)
+    dataset = PCDataset(excel_path=excel_path, transform=transform, return_type=2, dimension=2)
     loader = DataLoader(dataset,
-                        batch_size=batch_size,
-                        shuffle=False,
-                        num_workers=1,
-                        pin_memory=True)
-    for x, y in tqdm(loader):
-        print(x.shape, y.shape)
-        # break
+                              batch_size=batch_size,
+                              shuffle=False,
+                              num_workers=1,
+                              pin_memory=True)
+    for x, y_msk, y_cls in tqdm(loader):
+        print(x.shape, y_msk.shape, y_cls.shape)
+        break
     pass
 
 

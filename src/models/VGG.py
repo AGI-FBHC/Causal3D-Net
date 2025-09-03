@@ -7,6 +7,7 @@
 import torch
 import torch.nn as nn
 from torchvision.models import vgg16_bn, VGG16_BN_Weights
+import torchvision.models as models
 
 
 class VGG25D(nn.Module):
@@ -62,65 +63,60 @@ class VGG25D(nn.Module):
 
 
 
-def make_layers(cfg, in_channels=1, batch_norm=True):  # 注意 in_channels=1
-    layers = []
-    for v in cfg:
-        if v == "M":
-            layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-        else:
-            conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1, bias=not batch_norm)
-            if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
-            else:
-                layers += [conv2d, nn.ReLU(inplace=True)]
-            in_channels = v
-    return nn.Sequential(*layers)
-
-
 class VGG(nn.Module):
-
-    def __init__(self, cfg_name="D", num_classes=2, in_channels=1, batch_norm=True, dropout=0.5):
+    def __init__(self, num_classes: int = 2, pretrained: bool = True, slice_fusion: str = 'avg'):
         super().__init__()
-        self.CFG = {
-            "A": [64, "M", 128, "M", 256, 256, "M", 512, 512, "M", 512, "M"],
-            "D": [64, 64, "M", 128, 128, "M", 256, 256, 256, "M", 512, 512, 512, "M", 512, "M"],
-        }
-        self.features = make_layers(self.CFG[cfg_name], in_channels=in_channels, batch_norm=batch_norm)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # 自适应池化
-        self.classifier = nn.Sequential(
+        self.slice_fusion = slice_fusion
+
+        weights = VGG16_BN_Weights.IMAGENET1K_V1 if pretrained else None
+        backbone = vgg16_bn(weights=weights)
+        self.feature_extractor = backbone.features
+        self.slice_fc = nn.Sequential(
+            nn.AdaptiveAvgPool2d((7, 7)),
             nn.Flatten(),
-            nn.Linear(512, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(512, num_classes)
+            nn.Linear(512 * 7 * 7, 512),
+            nn.ReLU(inplace=True)
         )
-        self._init_weights()
 
-    def _init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.ones_(m.weight)
-                nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.zeros_(m.bias)
+        self.classifier = nn.Sequential(
+            nn.Linear(512, 128),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5),
+            nn.Linear(128, num_classes)
+        )
 
-    def forward(self, x):
-        x = self.features(x)
-        x = self.avgpool(x)
-        x = self.classifier(x)
-        return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: Tensor of shape (B, 1, D, H, W), grayscale CT slices
+        Returns:
+            out: Tensor of shape (B, num_classes)
+        """
+        B, C, D, H, W = x.shape
+        assert C == 1, f"Expected 1 input channel, got {C}"
+
+        x = x.permute(0, 2, 1, 3, 4).reshape(B * D, 1, H, W)
+        x = x.repeat(1, 3, 1, 1)
+
+        feats = self.feature_extractor(x)
+        feats = self.slice_fc(feats)
+        feats = feats.view(B, D, -1)
+
+        if self.slice_fusion == 'avg':
+            volume_feat = feats.mean(dim=1)
+        elif self.slice_fusion == 'max':
+            volume_feat = feats.max(dim=1).values
+        else:
+            raise ValueError(f"Unsupported fusion mode: {self.slice_fusion}")
+
+        out = self.classifier(volume_feat)    # (B, num_classes)
+        return out
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-    model = VGG(cfg_name="D", num_classes=2, in_channels=1).to(device)
-    x = torch.randn(8, 1, 50, 50).to(device)
-    logits = model(x)
-    print(logits.shape)
+    x = torch.randn(8, 1, 50, 160, 256)
+    model = VGG(num_classes=2)
+    out = model(x)
+    print(out.shape)
 
 
