@@ -12,14 +12,12 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers(dest="mode", help="Choose training mode")
 
-    # Segmentation training
     seg_parser = subparsers.add_parser("seg", help="Segmentation training")
     seg_parser.add_argument("--train", type=str, required=True, help="path to training dataset (Excel file)")
     seg_parser.add_argument("--test", type=str, required=True, help="path to testing dataset (Excel file)")
     seg_parser.add_argument("--cuda", type=int, default=0, help="index of GPU to use")
     seg_parser.add_argument("--outdir", type=str, default="./results", help="output directory")
 
-    # Cross-validation training
     cv_parser = subparsers.add_parser("cv", help="Cross-validation training")
     cv_parser.add_argument("--train", type=str, required=True, help="path to training dataset (Excel file)")
     cv_parser.add_argument("--folds", type=int, default=10, help="number of cross-validation folds")
@@ -27,7 +25,6 @@ if __name__ == '__main__':
     cv_parser.add_argument("--outdir", type=str, default="./results", help="output directory for results and logs")
     cv_parser.add_argument("--weight", type=str, default="./best_model.pth", help="segmentation trained model weight")
 
-    # Causal3DNet training
     causal_parser = subparsers.add_parser("causal", help="Causal3DNet training")
     causal_parser.add_argument("--train", type=str, required=True, help="path to training dataset")
     causal_parser.add_argument("--test", type=str, required=True, help="path to testing dataset")
