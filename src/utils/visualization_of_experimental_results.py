@@ -189,8 +189,8 @@ def vis_sota_model(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/com
 
 if __name__ == '__main__':
     # vis_10_folds_cv()
-    # vis_ablation()
-    vis_sota_model()
+    vis_ablation()
+    # vis_sota_model()
     pass
 
 
