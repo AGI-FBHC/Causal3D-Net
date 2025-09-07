@@ -194,6 +194,7 @@ Icon
 **/feature_distribution_combined/
 /src/results/
 /src/logging_record/
+/src/test.py
 
 README_self.md
 off_command.sh
