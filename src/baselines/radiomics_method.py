@@ -175,9 +175,9 @@ def cross_validate_radiomics(excel,
 
         logging.info(
             f"Fold {fold} finished. "
-            f"Accuracy={metrics.get('Accuracy', None):.4f}, "
-            f"AUC={metrics.get('AUC', None):.4f}, "
-            f"F1={metrics.get('F1', None):.4f}"
+            f"Accuracy={metrics.get('acc', np.nan):.4f}, "
+            f"AUC={metrics.get('auc', np.nan):.4f}, "
+            f"F1={metrics.get('f1', np.nan):.4f}"
         )
 
     df = pd.DataFrame(results)
