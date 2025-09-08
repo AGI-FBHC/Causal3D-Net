@@ -5,18 +5,22 @@
 # @FileName: radiomics_method.py
 # @Project : Causal3D-Net
 import os
+import logging
 
 import pymrmr
 
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LassoCV
 from sklearn.svm import SVC
 from sklearn.feature_selection import SelectFromModel
 from xgboost import XGBClassifier
+
+from src.metric.compute_score import compute_multi_metrics
 
 
 
@@ -46,10 +50,8 @@ def radiomics_with_randomforest(train_excel, test_excel, features) -> dict:
     train_features = train_features.iloc[:, 39:]
     test_features = test_features.iloc[:, 39:]
 
-    # 1. 数据预处理
     train_features, test_features = preprocess_data(train_features, test_features)
 
-    # 2. 执行mRMR特征选择(MID方法, k=40, 参考原文)
     train_data_mrmr = pd.concat([train_features, pd.Series(train_label, name='target')], axis=1)
     selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 40)
     train_features = train_features[selected_features]
@@ -147,6 +149,51 @@ def radiomics_with_XGBoost(train_excel, test_excel, features) -> dict:
         "y_pred": y_pred,
         "y_prob": y_prob,
     }
+
+
+def cross_validate_radiomics(excel,
+                             features,
+                             model_func,
+                             n_splits=10,
+                             save_path=None):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    results = []
+
+    for fold, (train_idx, test_idx) in enumerate(kf.split(excel), 1):
+        logging.info(f"Fold {fold}/{n_splits} started.")
+
+        train_excel = excel.iloc[train_idx].copy()
+        test_excel = excel.iloc[test_idx].copy()
+
+        outputs = model_func(train_excel, test_excel, features)
+        y_pred, y_prob = outputs["y_pred"], outputs["y_prob"]
+        y_true = test_excel["cancer"].values.ravel()
+
+        metrics = compute_multi_metrics(y_true, y_pred, y_prob)
+        metrics["fold"] = fold
+        results.append(metrics)
+
+        logging.info(
+            f"Fold {fold} finished. "
+            f"Accuracy={metrics.get('Accuracy', None):.4f}, "
+            f"AUC={metrics.get('AUC', None):.4f}, "
+            f"F1={metrics.get('F1', None):.4f}"
+        )
+
+    df = pd.DataFrame(results)
+
+    mean_row = df.mean(numeric_only=True)
+    mean_row["fold"] = "mean"
+    std_row = df.std(numeric_only=True)
+    std_row["fold"] = "std"
+
+    df = pd.concat([df, pd.DataFrame([mean_row, std_row])], ignore_index=True)
+
+    if save_path:
+        df.to_csv(save_path, index=False)
+        logging.info(f"Cross-validation results saved to {save_path}")
+
+    return df
 
 
 

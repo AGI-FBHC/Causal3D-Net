@@ -66,15 +66,12 @@ def specificity_score(y_true, y_pred):
 
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
 
-    if (tn + fp) == 0:
-        return 0.0  # np.nan
-    return tn / (tn + fp)
-
+    return tn / (tn + fp) if (tn + fp) > 0 else 0
 
 
 def compute_multi_metrics(y_true, y_pred, y_prob):
     acc = accuracy_score(y_true, y_pred)
-    auc = roc_auc_score(y_true, y_prob) if len(np.unique(y_true)) > 1 else 0.5
+    auc = roc_auc_score(y_true, y_prob) if len(np.unique(y_true)) > 1 else np.nan
     sensitivity = recall_score(y_true, y_pred, zero_division=0)
     specificity = specificity_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)

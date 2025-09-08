@@ -16,7 +16,8 @@ import pandas as pd
 
 from src.baselines.radiomics_method import (radiomics_with_randomforest,
                                             radiomics_with_SVM,
-                                            radiomics_with_XGBoost)
+                                            radiomics_with_XGBoost,
+                                            cross_validate_radiomics)
 from src.baselines.end_to_end_method import ct_with_dl
 from src.models.VGG import VGG25D, VGG
 from src.models.ViT import ViTClassifier
@@ -95,7 +96,11 @@ def run_baseline(train_excel_path,
                                             "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
                                             "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
                                             8)
-
+        cross_validate_radiomics(excel=train_excel,
+                                 features=features,
+                                 model_func=radiomics_with_randomforest,
+                                 n_splits=10,
+                                 save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         test_result = radiomics_with_randomforest(train_excel, test_excel, features)
     elif method == "2.5d_vgg":
         cite = ("\n\n##############################\n"
@@ -287,7 +292,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="liu",
+                        default="radiomics",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "PANDA",
