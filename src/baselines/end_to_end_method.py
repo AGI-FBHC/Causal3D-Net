@@ -11,6 +11,8 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import KFold
+
 import torchio as tio
 
 import torch
@@ -238,6 +240,62 @@ def ct_with_dl(train_excel, test_excel,
         "y_pred": y_pred,
         "y_prob": y_prob,
     }
+
+
+def cross_validate_dl(excel,
+                      cuda_id,
+                      model_func,
+                      current_dir,
+                      resize_shape=(50, 256, 256),
+                      dimension=3,
+                      patch_size=384,
+                      n_splits=10,
+                      save_path=None):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    results = []
+
+    for fold, (train_idx, test_idx) in enumerate(kf.split(excel), 1):
+        logging.info(f"Fold {fold}/{n_splits} started.")
+
+        train_excel = excel.iloc[train_idx].copy()
+        test_excel = excel.iloc[test_idx].copy()
+
+        outputs = ct_with_dl(train_excel, test_excel,
+                             cuda_id=cuda_id,
+                             model=model_func(),
+                             current_dir=current_dir,
+                             resize_shape=resize_shape,
+                             dimension=dimension,
+                             patch_size=patch_size)
+
+        y_pred, y_prob = outputs["y_pred"], outputs["y_prob"]
+        y_true = test_excel["cancer"].values.ravel()
+
+        metrics = compute_multi_metrics(y_true, y_pred, y_prob)
+        metrics["fold"] = fold
+        results.append(metrics)
+
+        logging.info(
+            f"Fold {fold} finished. "
+            f"Accuracy={metrics.get('acc', np.nan):.4f}, "
+            f"AUC={metrics.get('auc', np.nan):.4f}, "
+            f"F1={metrics.get('f1', np.nan):.4f}"
+        )
+
+    df = pd.DataFrame(results)
+
+    mean_row = df.mean(numeric_only=True)
+    mean_row["fold"] = "mean"
+    std_row = df.std(numeric_only=True)
+    std_row["fold"] = "std"
+
+    df = pd.concat([df, pd.DataFrame([mean_row, std_row])], ignore_index=True)
+
+    if save_path:
+        df.to_csv(save_path, index=False)
+        logging.info(f"Cross-validation results saved to {save_path}")
+
+    return df
 
 
 if __name__ == '__main__':

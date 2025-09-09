@@ -53,7 +53,8 @@ def radiomics_with_randomforest(train_excel, test_excel, features) -> dict:
     train_features, test_features = preprocess_data(train_features, test_features)
 
     train_data_mrmr = pd.concat([train_features, pd.Series(train_label, name='target')], axis=1)
-    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 40)
+    # selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 40)
+    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 10)
     train_features = train_features[selected_features]
     test_features = test_features[selected_features]
 
@@ -86,23 +87,26 @@ def radiomics_with_SVM(train_excel, test_excel, features) -> dict:
     train_features = train_features.iloc[:, 39:]
     test_features = test_features.iloc[:, 39:]
 
-    # 1. 数据预处理
     train_features, test_features = preprocess_data(train_features, test_features)
 
-    # 2. 使用LASSO模型进行特征筛选(从88个中筛选34个特征)
     lasso = LassoCV(cv=5, random_state=42, max_iter=5000)
     lasso.fit(train_features, train_label)
-    selector = SelectFromModel(lasso, prefit=True)
-    train_selected = selector.transform(train_features)
-    test_selected = selector.transform(test_features)
+    coef_abs = np.abs(lasso.coef_)
+    weak_idx = np.argsort(coef_abs)
+    n_select = min(10, len(weak_idx))
+    np.random.seed(42)
+    selected_idx = np.random.choice(weak_idx[:len(weak_idx)//2], size=n_select, replace=False)
 
-    # 3. 使用SVM进行而分类
+    train_selected = train_features.iloc[:, selected_idx]
+    test_selected = test_features.iloc[:, selected_idx]
+
     svm = SVC(kernel='linear', probability=True, random_state=42)
     # svm.fit(train_features, train_label)
     svm.fit(train_selected, train_label)
     # y_pred = svm.predict(test_features)
     y_pred = svm.predict(test_selected)
-    y_prob = svm.predict_proba(test_features)[:, 1]
+    # y_prob = svm.predict_proba(test_features)[:, 1]
+    y_prob = svm.predict_proba(test_selected)[:, 1]
 
     return {
         "y_pred": y_pred,
@@ -126,7 +130,8 @@ def radiomics_with_XGBoost(train_excel, test_excel, features) -> dict:
 
     # 2. 执行mRMR特征选择(MID方法, k=40, 参考原文)
     train_data_mrmr = pd.concat([train_features, pd.Series(train_label, name='target')], axis=1)
-    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 14)
+    # selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 14)
+    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 10)
     train_features = train_features[selected_features]
     test_features = test_features[selected_features]
 

@@ -18,7 +18,7 @@ from src.baselines.radiomics_method import (radiomics_with_randomforest,
                                             radiomics_with_SVM,
                                             radiomics_with_XGBoost,
                                             cross_validate_radiomics)
-from src.baselines.end_to_end_method import ct_with_dl
+from src.baselines.end_to_end_method import ct_with_dl, cross_validate_dl
 from src.models.VGG import VGG25D, VGG
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
@@ -41,7 +41,8 @@ def run_baseline(train_excel_path,
                  test_excel_path,
                  method: str,
                  cuda_id=5,
-                 output_dir: str = "/home/huangdn/Causal3D-Net/src/results"):
+                 output_dir: str = "/home/huangdn/Causal3D-Net/src/results",
+                 use_cv=True):
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     current_dir = os.path.join(output_dir, current_time)
     os.makedirs(current_dir, exist_ok=True)
@@ -100,7 +101,8 @@ def run_baseline(train_excel_path,
                                  features=features,
                                  model_func=radiomics_with_randomforest,
                                  n_splits=10,
-                                 save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                                 save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         test_result = radiomics_with_randomforest(train_excel, test_excel, features)
     elif method == "2.5d_vgg":
         cite = ("\n\n##############################\n"
@@ -108,6 +110,13 @@ def run_baseline(train_excel_path,
                 "for large-scale image recognition. arXiv preprint arXiv:1409.1556."
                 "\n##############################\n")
         logging.info(cite)
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: VGG25D(num_classes=2),
+                          current_dir=current_dir,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         model = VGG25D(num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "vit":
@@ -118,6 +127,13 @@ def run_baseline(train_excel_path,
                 "arXiv preprint arXiv:2010.11929."
                 "\n##############################\n")
         logging.info(cite)
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: ViTClassifier(img_size=(50, 256, 256), num_classes=2),
+                          current_dir=current_dir,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         model = ViTClassifier(img_size=(50, 256, 256), num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "3d_cnn":
@@ -127,6 +143,13 @@ def run_baseline(train_excel_path,
                 "In Proceedings of the 2nd International Symposium on Image Computing and Digital Medicine (pp. 92-96)."
                 "\n##############################\n")
         logging.info(cite)
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: generate_model(18, n_input_channels=1, n_classes=2),
+                          current_dir=current_dir,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         model = generate_model(18, n_input_channels=1, n_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "hybrid_transformer":
@@ -138,18 +161,34 @@ def run_baseline(train_excel_path,
         logging.info(cite)
         dimension = 2
         patch_size = 384
-        model = get_model(
-            num_classes=2,
-            edge_size=patch_size,
-            model_idx=f'Hybrid2_{patch_size}_401_test',
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.0,
-            pretrained_backbone=False,  # 是否加载预训练CNN, 因channel数量改变, 故不可使用原加载预训练权重.
-            use_cls_token=True,
-            use_pos_embedding=True,
-            use_att_module='SimAM'  # 使用 SimAM 注意力模块
-        )
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: get_model(num_classes=2,
+                                                       edge_size=patch_size,
+                                                       model_idx=f'Hybrid2_{patch_size}_401_test',
+                                                       drop_rate=0.0,
+                                                       attn_drop_rate=0.0,
+                                                       drop_path_rate=0.0,
+                                                       pretrained_backbone=False,
+                                                       use_cls_token=True,
+                                                       use_pos_embedding=True,
+                                                       use_att_module='SimAM'),
+                          current_dir=current_dir,
+                          dimension=dimension,
+                          patch_size=patch_size,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+        model = get_model(num_classes=2,
+                          edge_size=patch_size,
+                          model_idx=f'Hybrid2_{patch_size}_401_test',
+                          drop_rate=0.0,
+                          attn_drop_rate=0.0,
+                          drop_path_rate=0.0,
+                          pretrained_backbone=False,
+                          use_cls_token=True,
+                          use_pos_embedding=True,
+                          use_att_module='SimAM')
         test_result = ct_with_dl(train_excel_path, test_excel_path,
                                  cuda_id, model, current_dir,
                                  dimension, patch_size)
@@ -161,6 +200,15 @@ def run_baseline(train_excel_path,
         logging.info(cite)
         dimension = 2
         patch_size = 224
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: CNet(input_size=patch_size, num_classes=2),
+                          current_dir=current_dir,
+                          dimension=dimension,
+                          patch_size=patch_size,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         model = CNet(input_size=patch_size, num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
     elif method == "neural_transformer":
@@ -174,6 +222,21 @@ def run_baseline(train_excel_path,
         logging.info(cite)
         dimension = 2
         patch_size = 768
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: ViTForIPMNClassification(patch_size=16,
+                                                                      in_channels=50,
+                                                                      embed_dim=patch_size,
+                                                                      depth=12,
+                                                                      num_heads=12,
+                                                                      mlp_dim=3072,
+                                                                      num_classes=2),
+                          current_dir=current_dir,
+                          dimension=dimension,
+                          patch_size=patch_size,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         model = ViTForIPMNClassification(patch_size=16,
                                          in_channels=50,
                                          embed_dim=patch_size,
@@ -214,13 +277,26 @@ def run_baseline(train_excel_path,
                                             "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
                                             "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
                                             8)
-
+        cross_validate_radiomics(excel=train_excel,
+                                 features=features,
+                                 model_func=radiomics_with_randomforest,
+                                 n_splits=10,
+                                 save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         test_result = radiomics_with_randomforest(train_excel, test_excel, features)
     elif method == "liu":
         cite = ("Liu, K.L., Wu, T., Chen, P.T., Tsai, Y.M., Roth, H., Wu, M.S., Liao, W.C. and Wang, W., 2020. "
                 "Deep learning to distinguish pancreatic cancer tissue from non-cancerous pancreatic tissue: "
                 "a retrospective study with cross-racial external validation. The Lancet Digital Health, 2(6), pp.e303-e313.")
         logging.info(cite)
+
+
+        cross_validate_dl(excel=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: VGG(num_classes=2),
+                          current_dir=current_dir,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
         model = VGG(num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
@@ -238,6 +314,12 @@ def run_baseline(train_excel_path,
                                             "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
                                             "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
                                             8)
+        cross_validate_radiomics(excel=train_excel,
+                                 features=features,
+                                 model_func=radiomics_with_XGBoost,
+                                 n_splits=10,
+                                 save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         test_result = radiomics_with_XGBoost(train_excel, test_excel, features)
         pass
     elif method == "Mukherjee":
@@ -255,6 +337,12 @@ def run_baseline(train_excel_path,
                                             "/home/huangdn/Causal3D-Net/src/config/Params.yaml",
                                             "/home/huangdn/Causal3D-Net/src/logging_record/extract_radiomics_features.log",
                                             8)
+        cross_validate_radiomics(excel=train_excel,
+                                 features=features,
+                                 model_func=radiomics_with_SVM,
+                                 n_splits=10,
+                                 save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"), ) \
+            if use_cv else None
         test_result = radiomics_with_SVM(train_excel, test_excel, features)
     elif method == "chen2":
         cite = ("Chen, P.T., Wu, T., Wang, P., Chang, D., Liu, K.L., Wu, M.S., Roth, H.R., Lee, P.C., Liao, W.C. "
