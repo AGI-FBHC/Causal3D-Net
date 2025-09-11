@@ -290,14 +290,13 @@ def run_baseline(train_excel_path,
                 "a retrospective study with cross-racial external validation. The Lancet Digital Health, 2(6), pp.e303-e313.")
         logging.info(cite)
 
-
         cross_validate_dl(excel=train_excel_path,
                           cuda_id=cuda_id,
-                          model_func=lambda: VGG(num_classes=2),
+                          model_func=lambda: VGG(num_classes=2, slice_fusion="max"),
                           current_dir=current_dir,
                           n_splits=10,
                           save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
-        model = VGG(num_classes=2)
+        model = VGG(num_classes=2, slice_fusion="max")
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
     elif method == "chen1":
@@ -365,7 +364,6 @@ def run_baseline(train_excel_path,
 
     csv_df = pd.DataFrame.from_dict(summary)
     csv_df.to_csv(os.path.join(diagnose_dir, method + ".csv"))
-
 
 
 if __name__ == '__main__':

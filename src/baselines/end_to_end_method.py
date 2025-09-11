@@ -251,6 +251,8 @@ def cross_validate_dl(excel,
                       patch_size=384,
                       n_splits=10,
                       save_path=None):
+    if isinstance(excel, str):
+        excel = pd.read_excel(excel)
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     results = []
 
