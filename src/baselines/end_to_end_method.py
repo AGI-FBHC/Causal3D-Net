@@ -242,7 +242,7 @@ def ct_with_dl(train_excel, test_excel,
     }
 
 
-def cross_validate_dl(excel,
+def cross_validate_dl(excel_path,
                       cuda_id,
                       model_func,
                       current_dir,
@@ -251,8 +251,8 @@ def cross_validate_dl(excel,
                       patch_size=384,
                       n_splits=10,
                       save_path=None):
-    if isinstance(excel, str):
-        excel = pd.read_excel(excel)
+    excel = pd.read_excel(excel_path)
+
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     results = []
 
@@ -262,7 +262,12 @@ def cross_validate_dl(excel,
         train_excel = excel.iloc[train_idx].copy()
         test_excel = excel.iloc[test_idx].copy()
 
-        outputs = ct_with_dl(train_excel, test_excel,
+        train_path = os.path.join(current_dir, f"cv_train_fold_{fold}.xlsx")
+        test_path = os.path.join(current_dir, f"cv_test_fold_{fold}.xlsx")
+        train_excel.to_excel(train_path, index=False)
+        test_excel.to_excel(test_path, index=False)
+
+        outputs = ct_with_dl(train_path, test_path,
                              cuda_id=cuda_id,
                              model=model_func(),
                              current_dir=current_dir,

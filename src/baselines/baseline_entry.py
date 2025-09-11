@@ -111,7 +111,7 @@ def run_baseline(train_excel_path,
                 "\n##############################\n")
         logging.info(cite)
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: VGG25D(num_classes=2),
                           current_dir=current_dir,
@@ -128,7 +128,7 @@ def run_baseline(train_excel_path,
                 "\n##############################\n")
         logging.info(cite)
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: ViTClassifier(img_size=(50, 256, 256), num_classes=2),
                           current_dir=current_dir,
@@ -144,7 +144,7 @@ def run_baseline(train_excel_path,
                 "\n##############################\n")
         logging.info(cite)
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: generate_model(18, n_input_channels=1, n_classes=2),
                           current_dir=current_dir,
@@ -162,7 +162,7 @@ def run_baseline(train_excel_path,
         dimension = 2
         patch_size = 384
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: get_model(num_classes=2,
                                                        edge_size=patch_size,
@@ -201,7 +201,7 @@ def run_baseline(train_excel_path,
         dimension = 2
         patch_size = 224
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: CNet(input_size=patch_size, num_classes=2),
                           current_dir=current_dir,
@@ -223,7 +223,7 @@ def run_baseline(train_excel_path,
         dimension = 2
         patch_size = 768
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: ViTForIPMNClassification(patch_size=16,
                                                                       in_channels=50,
@@ -290,7 +290,7 @@ def run_baseline(train_excel_path,
                 "a retrospective study with cross-racial external validation. The Lancet Digital Health, 2(6), pp.e303-e313.")
         logging.info(cite)
 
-        cross_validate_dl(excel=train_excel_path,
+        cross_validate_dl(excel_path=train_excel_path,
                           cuda_id=cuda_id,
                           model_func=lambda: VGG(num_classes=2, slice_fusion="max"),
                           current_dir=current_dir,
