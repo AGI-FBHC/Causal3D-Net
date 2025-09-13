@@ -53,9 +53,51 @@ def modify_mask(seg_map_path="/home/huangdn/Causal3D-Net/src/logging_record/seg_
     pass
 
 
+def move_files(df, img_col, mask_col, target_img_dir, target_mask_dir):
+    for _, row in df.iterrows():
+        img_src = row[img_col]
+        mask_src = row[mask_col]
+
+        img_dst = os.path.join(target_img_dir, os.path.basename(img_src))
+        mask_dst = os.path.join(target_mask_dir, os.path.basename(mask_src))
+
+        if os.path.exists(img_src):
+            shutil.move(img_src, img_dst)
+        else:
+            print(f"⚠️ 图像文件不存在: {img_src}")
+        if os.path.exists(mask_src):
+            shutil.move(mask_src, mask_dst)
+        else:
+            print(f"⚠️ 掩膜文件不存在: {mask_src}")
+
+
+def retraining_model(train_excel_path="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+                     test_excel_path="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+                     map_excel_path="/home/huangdn/Causal3D-Net/src/logging_record/seg_file_map.xlsx",
+                     train_img_dir="/home/huangdn/U-Mamba/data/nnUNet_raw/Dataset008_pancreasTumour/imagesTr",
+                     train_mask_dir="/home/huangdn/U-Mamba/data/nnUNet_raw/Dataset008_pancreasTumour/labelsTr",
+                     test_img_dir="/home/huangdn/U-Mamba/data/nnUNet_raw/Dataset008_pancreasTumour/imagesTs",
+                     test_mask_dir="/home/huangdn/U-Mamba/data/nnUNet_raw/Dataset008_pancreasTumour/ground_truth"):
+    train_excel = pd.read_excel(train_excel_path)
+    test_excel = pd.read_excel(test_excel_path)
+    map_excel = pd.read_excel(map_excel_path)
+
+    train_excel["image_path"] = train_excel["image_path"].str.replace(".npy", ".nii.gz", regex=False)
+    test_excel["image_path"] = test_excel["image_path"].str.replace(".npy", ".nii.gz", regex=False)
+
+    train_paths = set(train_excel["image_path"])
+    test_paths = set(test_excel["image_path"])
+
+    map_train = map_excel[map_excel["image_path"].isin(train_paths)].copy()
+    map_test = map_excel[map_excel["image_path"].isin(test_paths)].copy()
+
+    move_files(map_train, "seg_image_path", "seg_mask_path", train_img_dir, train_mask_dir)
+    move_files(map_test, "seg_image_path", "seg_mask_path", test_img_dir, test_mask_dir)
+
 
 if __name__ == '__main__':
     # rename_to_seg_dir()
     # modify_mask()
+    retraining_model()
     pass
 
