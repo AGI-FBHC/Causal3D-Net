@@ -19,6 +19,7 @@ from src.baselines.radiomics_method import (radiomics_with_randomforest,
                                             radiomics_with_XGBoost,
                                             cross_validate_radiomics)
 from src.baselines.end_to_end_method import ct_with_dl, cross_validate_dl
+from src.baselines.medalab_end_to_end_workflow import metric_evaluation_for_chen
 from src.models.VGG import VGG25D, VGG
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
@@ -349,6 +350,7 @@ def run_baseline(train_excel_path,
                 "population-based study. Radiology, 306(1), pp.172-182.")
         logging.info(cite)
 
+        metric_evaluation_for_chen()
         pass
     logging.info("✅ Training completed successfully.")
     test_result["center"] = test_center
