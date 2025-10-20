@@ -380,7 +380,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="radiomics",
+                        default="chen2",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "PANDA",
@@ -388,7 +388,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,
-                        default=4,
+                        default=3,
                         help="CUDA ID")
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",

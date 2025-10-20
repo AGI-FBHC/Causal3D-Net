@@ -160,6 +160,6 @@ if __name__ == '__main__':
     # rename_to_seg_dir()
     # modify_mask()
     # retraining_model()
-    metric_evaluation()
+    metric_evaluation_for_chen()
     pass
 
