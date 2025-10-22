@@ -350,7 +350,7 @@ def run_baseline(train_excel_path,
                 "population-based study. Radiology, 306(1), pp.172-182.")
         logging.info(cite)
 
-        metric_evaluation_for_chen()
+        test_result = metric_evaluation_for_chen(save_path=os.path.join(diagnose_dir, f"{method}_infer_data.csv"),)
         pass
     logging.info("✅ Training completed successfully.")
     test_result["center"] = test_center
@@ -394,10 +394,15 @@ if __name__ == '__main__':
                         default="/home/huangdn/Causal3D-Net/src/results",
                         required=False,
                         help="output directory")
+    parser.add_argument("--cv", type=bool,
+                        default=False,
+                        required=False,
+                        help="whether to use cross validation")
     args = parser.parse_args()
     run_baseline(train_excel_path=args.train,
                  test_excel_path=args.test,
                  method=args.method,
                  cuda_id=args.cuda_id,
-                 output_dir=args.outdir)
+                 output_dir=args.outdir,
+                 use_cv=args.cv)
     pass

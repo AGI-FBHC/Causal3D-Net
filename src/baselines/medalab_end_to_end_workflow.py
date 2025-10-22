@@ -11,6 +11,7 @@
 
 import os
 import shutil
+import swifter
 import subprocess
 import numpy as np
 import pandas as pd
@@ -20,6 +21,8 @@ from datetime import datetime
 
 from src.metric.compute_score import evaluate_test_result
 
+
+tqdm.pandas()
 
 def rename_to_seg_dir(excel_path="/home/huangdn/Causal3D-Net/src/dataset/dataset.xlsx",
                       dst_dir="/home/huangdn/U-Mamba/data/nnUNet_raw/Dataset006_pancreasTumour",
@@ -121,7 +124,7 @@ def compute_dice(row):
 
 def metric_evaluation_for_chen(map_excel_path="/home/huangdn/Causal3D-Net/src/logging_record/seg_file_map.xlsx",
                                test_excel_path="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
-                               output_dir="/home/huangdn/Causal3D-Net/src/results",):
+                               save_path="/home/huangdn/Causal3D-Net/src/results"):
     test_excel = pd.read_excel(test_excel_path)
     map_excel = pd.read_excel(map_excel_path)
     test_excel["image_path"] = test_excel["image_path"].str.replace(".npy", ".nii.gz", regex=False)
@@ -133,6 +136,7 @@ def metric_evaluation_for_chen(map_excel_path="/home/huangdn/Causal3D-Net/src/lo
         right_on="image_path",
         how="left"
     )
+    is_equal = merged["image_path"].equals(test_excel["image_path"])
     merged["seg_mask_path"] = merged["seg_mask_path"].str.replace("Dataset006_pancreasTumour",
                                                                   "Dataset008_pancreasTumour",
                                                                   regex=False)
@@ -141,25 +145,21 @@ def metric_evaluation_for_chen(map_excel_path="/home/huangdn/Causal3D-Net/src/lo
                                                                      regex=False)
     merged = merged.rename(columns={"seg_mask_path": "seg_infer"})
     seg_result = merged[["seg_ground_truth", "seg_infer", "cancer", "center"]]
-    seg_result["y_prob"] = seg_result.apply(compute_dice, axis=1)
+    seg_result["y_prob"] = seg_result.progress_apply(compute_dice, axis=1)
     seg_result["y_pred"] = seg_result["y_prob"] > 0.5
-    seg_result = seg_result[["cancer", "center", "y_prob", "y_pred"]]
-    metrics = evaluate_test_result(seg_result)
+    seg_result.to_csv(save_path, index=False)
 
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    current_dir = os.path.join(output_dir, current_time)
-    os.makedirs(current_dir, exist_ok=True)
-    save_path = os.path.join(current_dir, "chen2.csv")
-    metrics.to_csv(save_path, index=False)
-
-
-
+    return {
+        "y_pred": seg_result["y_pred"],
+        "y_prob": seg_result["y_prob"],
+    }
 
 
 if __name__ == '__main__':
     # rename_to_seg_dir()
     # modify_mask()
     # retraining_model()
+
     metric_evaluation_for_chen()
     pass
 
