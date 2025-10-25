@@ -100,7 +100,7 @@ def radiomics_with_SVM(train_excel, test_excel, features) -> dict:
     train_selected = train_features.iloc[:, selected_idx]
     test_selected = test_features.iloc[:, selected_idx]
 
-    svm = SVC(kernel='linear', probability=True, random_state=42)
+    svm = SVC(kernel='sigmoid', probability=True, random_state=42)
     # svm.fit(train_features, train_label)
     svm.fit(train_selected, train_label)
     # y_pred = svm.predict(test_features)
@@ -130,16 +130,16 @@ def radiomics_with_XGBoost(train_excel, test_excel, features) -> dict:
 
     # 2. 执行mRMR特征选择(MID方法, k=40, 参考原文)
     train_data_mrmr = pd.concat([train_features, pd.Series(train_label, name='target')], axis=1)
-    # selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 14)
-    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 10)
+    selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 14)
+    # selected_features = pymrmr.mRMR(train_data_mrmr, 'MID', 10)
     train_features = train_features[selected_features]
     test_features = test_features[selected_features]
 
     xgb = XGBClassifier(
-        n_estimators=200,
-        max_depth=5,
-        learning_rate=0.05,
-        subsample=0.8,
+        n_estimators=50,
+        max_depth=2,
+        learning_rate=0.1,
+        subsample=0.6,
         colsample_bytree=0.8,
         random_state=42,
         use_label_encoder=False,
