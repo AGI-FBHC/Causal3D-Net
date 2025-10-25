@@ -117,7 +117,8 @@ def run_baseline(train_excel_path,
                           model_func=lambda: VGG25D(num_classes=2),
                           current_dir=current_dir,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = VGG25D(num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "vit":
@@ -134,7 +135,8 @@ def run_baseline(train_excel_path,
                           model_func=lambda: ViTClassifier(img_size=(50, 256, 256), num_classes=2),
                           current_dir=current_dir,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = ViTClassifier(img_size=(50, 256, 256), num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "3d_cnn":
@@ -150,7 +152,8 @@ def run_baseline(train_excel_path,
                           model_func=lambda: generate_model(18, n_input_channels=1, n_classes=2),
                           current_dir=current_dir,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = generate_model(18, n_input_channels=1, n_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
     elif method == "hybrid_transformer":
@@ -179,7 +182,8 @@ def run_baseline(train_excel_path,
                           dimension=dimension,
                           patch_size=patch_size,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = get_model(num_classes=2,
                           edge_size=patch_size,
                           model_idx=f'Hybrid2_{patch_size}_401_test',
@@ -209,7 +213,8 @@ def run_baseline(train_excel_path,
                           dimension=dimension,
                           patch_size=patch_size,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = CNet(input_size=patch_size, num_classes=2)
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir, dimension, patch_size)
     elif method == "neural_transformer":
@@ -237,7 +242,8 @@ def run_baseline(train_excel_path,
                           dimension=dimension,
                           patch_size=patch_size,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = ViTForIPMNClassification(patch_size=16,
                                          in_channels=50,
                                          embed_dim=patch_size,
@@ -296,7 +302,8 @@ def run_baseline(train_excel_path,
                           model_func=lambda: VGG(num_classes=2, slice_fusion="max"),
                           current_dir=current_dir,
                           n_splits=10,
-                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),)
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
         model = VGG(num_classes=2, slice_fusion="max")
         test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
