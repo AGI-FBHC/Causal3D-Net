@@ -387,7 +387,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="radiomics",
+                        default="Mukherjee",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "PANDA",

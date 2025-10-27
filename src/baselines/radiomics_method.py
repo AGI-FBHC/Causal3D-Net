@@ -96,10 +96,10 @@ def radiomics_with_SVM(train_excel, test_excel, features) -> dict:
     lasso = LassoCV(cv=5, random_state=42, max_iter=5000)
     lasso.fit(train_features, train_label)
     coef_abs = np.abs(lasso.coef_)
-    weak_idx = np.argsort(coef_abs)
-    n_select = min(10, len(weak_idx))
+    strong_idx = np.argsort(coef_abs)[::-1]
+    n_select = min(10, np.sum(coef_abs > 0))
     np.random.seed(42)
-    selected_idx = np.random.choice(weak_idx[:len(weak_idx)//2], size=n_select, replace=False)
+    selected_idx = strong_idx[:n_select]
 
     train_selected = train_features.iloc[:, selected_idx]
     test_selected = test_features.iloc[:, selected_idx]
