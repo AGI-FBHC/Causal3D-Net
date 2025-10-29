@@ -55,6 +55,8 @@ def radiomics_with_randomforest(train_excel, test_excel, features) -> dict:
     train_data_mrmr = pd.concat([train_features, pd.Series(train_label, name="target")], axis=1)
     # selected_features = pymrmr.mRMR(train_data_mrmr, "MID", 40)
     selected_features = pymrmr.mRMR(train_data_mrmr, "MIQ", 10)
+    if "target" in selected_features:
+        selected_features.remove("target")
     train_features = train_features[selected_features]
     test_features = test_features[selected_features]
 

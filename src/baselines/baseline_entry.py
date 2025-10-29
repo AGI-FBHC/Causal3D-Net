@@ -78,6 +78,8 @@ def run_baseline(train_excel_path,
         'external_test_2': [15, 16, 17],
         'uncertainty_test': [9, 10, 12],
     }
+    logging.info(f"Training dataset path is: {train_excel_path}")
+    logging.info(f"Test dataset path is: {test_excel_path}")
 
     logging.info("🚀 Starting model training...")
     test_result = dict()
