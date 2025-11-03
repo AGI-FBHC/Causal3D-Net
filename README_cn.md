@@ -32,13 +32,13 @@ conda env create -f environment.yaml
 所有实验都可以使用以下方面启动：
 
 ```linux
-python -m src.training.main <mode> [options]
+python -m src.main <mode> [options]
 ```
 
 ### 分割训练
 
 ```linux
-python -m src.training.main seg \
+python -m src.main seg \
     --train /path/to/dataset_for_train.xlsx \
     --test /path/to/dataset_for_test.xlsx \
     --cuda 0 \
@@ -55,7 +55,7 @@ python -m src.training.main seg \
 ### Causal3DNet训练
 
 ```linux
-python -m src.training.main causal \
+python -m src.main causal \
     --train /path/to/dataset_for_train.xlsx \
     --test /path/to/dataset_for_test.xlsx \
     --indi 1 \

@@ -32,13 +32,13 @@ conda env create -f environment.yaml
 All experiments can be launched with the following command:
 
 ```
-python -m src.training.main <mode> [options]
+python -m src.main <mode> [options]
 ```
 
 ### Segmentation Training
 
 ```
-python -m src.training.main seg \
+python -m src.main seg \
     --train /path/to/dataset_for_train.xlsx \
     --test /path/to/dataset_for_test.xlsx \
     --cuda 0 \
@@ -55,7 +55,7 @@ Arguments:
 ### Causal3DNet Training
 
 ```
-python -m src.training.main causal \
+python -m src.main causal \
     --train /path/to/dataset_for_train.xlsx \
     --test /path/to/dataset_for_test.xlsx \
     --indi 1 \
