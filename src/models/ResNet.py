@@ -240,7 +240,7 @@ def generate_model(model_depth, **kwargs):
 
 
 if __name__ == '__main__':
-    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     input_tensor = torch.randn(4, 1, 50, 256, 256).to(device)
 

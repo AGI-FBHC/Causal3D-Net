@@ -307,6 +307,9 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
         best_model_save_path = os.path.join(current_dir, "best_model.pth")
         last_model_save_path = os.path.join(current_dir, "last_model.pth")
 
+    logger.info(f"Training dataset path is: {train_excel}")
+    logger.info(f"Test dataset path is: {test_excel}")
+
     info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
                 f"center branch: {'Yes' if use_cent else 'No'}, "
                 f"orthogonal loss: {'Yes' if orthogonal else 'No'}, in causal module.")
@@ -732,9 +735,10 @@ def cross_validate_Causal3DNet(train_excel: str,
     console.setLevel(logging.INFO)
     logging.getLogger().addHandler(console)
 
+    logging.info(f"CV dataset path is: {train_excel}")
+
     data = pd.read_excel(train_excel)
     targets = data["cancer"].values
-
 
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
 

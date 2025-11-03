@@ -20,6 +20,7 @@ from src.baselines.radiomics_method import (radiomics_with_randomforest,
                                             cross_validate_radiomics)
 from src.baselines.end_to_end_method import ct_with_dl, cross_validate_dl
 from src.baselines.medalab_end_to_end_workflow import metric_evaluation_for_chen
+from src.models.EnsembleCNN import MeanEnsembleCNN
 from src.models.VGG import VGG25D, VGG
 from src.models.ViT import ViTClassifier
 from src.models.ResNet import generate_model
@@ -358,8 +359,19 @@ def run_baseline(train_excel_path,
                 "and Wang, W., 2023. Pancreatic cancer detection on CT scans with deep learning: a nationwide "
                 "population-based study. Radiology, 306(1), pp.172-182.")
         logging.info(cite)
-
-        test_result = metric_evaluation_for_chen(save_path=os.path.join(diagnose_dir, f"{method}_infer_data.csv"),)
+        cross_validate_dl(excel_path=train_excel_path,
+                          cuda_id=cuda_id,
+                          model_func=lambda: MeanEnsembleCNN(model_depth=18,
+                                                             n_models=5,
+                                                             n_input_channels=1,
+                                                             n_classes=2,
+                                                             device=cuda_id),
+                          current_dir=current_dir,
+                          n_splits=10,
+                          save_path=os.path.join(diagnose_dir, f"cross_validate_{method}.csv"),) \
+            if use_cv else None
+        model = MeanEnsembleCNN(model_depth=18, n_models=5, n_input_channels=1, n_classes=2, device=cuda_id)
+        test_result = ct_with_dl(train_excel_path, test_excel_path, cuda_id, model, current_dir)
         pass
     logging.info("✅ Training completed successfully.")
     test_result["center"] = test_center
@@ -389,7 +401,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="Mukherjee",
+                        default="chen2",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "PANDA",
@@ -397,7 +409,7 @@ if __name__ == '__main__':
                         # required=True,
                         help="baseline method")
     parser.add_argument("--cuda_id", type=int,
-                        default=9,
+                        default=0,
                         help="CUDA ID")
     parser.add_argument("--outdir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results",
