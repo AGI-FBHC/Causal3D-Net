@@ -31,6 +31,7 @@ if __name__ == '__main__':
     causal_parser.add_argument("--indi", type=int, default=1, choices=[0, 1], help="whether to use the individual branch in causal methods")
     causal_parser.add_argument("--cent", type=int, default=1, choices=[0, 1], help="whether to use the center branch in causal methods")
     causal_parser.add_argument("--orth", type=int, default=1, choices=[0, 1], help="whether to use the orthogonal loss in causal methods")
+    causal_parser.add_argument("--adapt", type=str, default="none", choices=["none", "reward_bad", "reward_good"], help="adaptive loss method")
     causal_parser.add_argument("--cuda", type=int, default=0, help="index of GPU to use")
     causal_parser.add_argument("--outdir", type=str, default="./results", help="output directory")
     causal_parser.add_argument("--weight", type=str, default="./best_model.pth", help="segmentation trained model weight")
@@ -51,6 +52,7 @@ if __name__ == '__main__':
             use_indi=args.indi,
             use_cent=args.cent,
             orthogonal=args.orth,
+            adaptive=args.adapt,
             cuda_id=args.cuda,
             output_dir=args.outdir,
             model_weight=args.weight,

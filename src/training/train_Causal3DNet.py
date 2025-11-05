@@ -272,6 +272,7 @@ def train_seg(train_excel,
 def train_Causal3DNet(train_excel: str, test_excel: str,
                       use_indi: int = 1, use_cent: int = 1,
                       orthogonal: int = 1,
+                      adaptive: str = "reward_bad",
                       cuda_id: int =5,
                       output_dir: Union[str, None] = "/home/huangdn/Causal3D-Net/src/results",
                       model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
@@ -312,7 +313,8 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
 
     info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
                 f"center branch: {'Yes' if use_cent else 'No'}, "
-                f"orthogonal loss: {'Yes' if orthogonal else 'No'}, in causal module.")
+                f"orthogonal loss: {'Yes' if orthogonal else 'No'}, "
+                f"adaptive mode: {adaptive}, in causal module.")
     logger.info(info_smg)
 
     batch_size = 8
@@ -500,20 +502,23 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
 
                     lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
                                                                    (l_indi + l_o_im + l_c_indi).item(),
-                                                                   (l_cent + l_o_cm + l_c_cent).item())
+                                                                   (l_cent + l_o_cm + l_c_cent).item(),
+                                                                   mode=adaptive)
                     loss = (lambda_m * l_c_main +
                             alpha1 * (lambda_i * (l_indi + l_o_im) + lambda_c * (l_cent + l_o_cm)) +
                             alpha2 * (lambda_i * l_c_indi + lambda_c * l_c_cent))
                 else:
                     lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
                                                                    (l_indi + l_o_im).item(),
-                                                                   (l_cent + l_o_cm).item())
+                                                                   (l_cent + l_o_cm).item(),
+                                                                   mode=adaptive)
                     loss = (lambda_m * l_c_main +
                             alpha1 * (lambda_i * (l_indi + l_o_im) + lambda_c * (l_cent + l_o_cm)))
             else:
                 lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
                                                                l_indi.item(),
-                                                               l_cent.item())
+                                                               l_cent.item(),
+                                                               mode=adaptive)
                 loss = lambda_m * l_c_main + lambda_i * l_indi + lambda_c * l_cent
 
             loss.backward()
@@ -828,51 +833,56 @@ if __name__ == '__main__':
     #     output_dir=args.outdir
     # )
 
-    # parser = argparse.ArgumentParser(description="Causal 3D Net training")
-    # parser.add_argument("--train", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
-    #                     # required=True,
-    #                     help="path to training dataset")
-    # parser.add_argument("--test", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
-    #                     # required=True,
-    #                     help="path to testing dataset")
-    # parser.add_argument("--indi", type=int,
-    #                     default=1,
-    #                     choices=[0, 1],
-    #                     help="whether to use the individual branch in causal methods")
-    # parser.add_argument("--cent", type=int,
-    #                     default=1,
-    #                     choices=[0, 1],
-    #                     help="whether to use the center branch in causal methods")
-    # parser.add_argument("--orth", type=float,
-    #                     default=1,
-    #                     choices=[0, 1],
-    #                     help="whether to use the orthogonal loss in causal methods")
-    # parser.add_argument("--cuda", type=int,
-    #                     default=5,
-    #                     required=False,
-    #                     help="index of GPU to use")
-    # parser.add_argument("--outdir", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/results",
-    #                     required=False,
-    #                     help="output directory")
-    # parser.add_argument("--weight", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/results/"
-    #                             "2025-06-21_06-49-30/best_model.pth",
-    #                     required=False,
-    #                     help="segmentation trained model weight")
-    # args = parser.parse_args()
-    # train_Causal3DNet(
-    #     train_excel=args.train,
-    #     test_excel=args.test,
-    #     use_indi=args.indi,
-    #     use_cent=args.cent,
-    #     orthogonal=args.orth,
-    #     cuda_id=args.cuda,
-    #     output_dir=args.outdir,
-    #     model_weight=args.weight,
-    # )
+    parser = argparse.ArgumentParser(description="Causal 3D Net training")
+    parser.add_argument("--train", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+                        # required=True,
+                        help="path to training dataset")
+    parser.add_argument("--test", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+                        # required=True,
+                        help="path to testing dataset")
+    parser.add_argument("--indi", type=int,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the individual branch in causal methods")
+    parser.add_argument("--cent", type=int,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the center branch in causal methods")
+    parser.add_argument("--orth", type=float,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the orthogonal loss in causal methods")
+    parser.add_argument("--adapt", type=str,
+                        default="none",
+                        choices=["none", "reward_bad", "reward_good"],
+                        help="adaptive loss method")
+    parser.add_argument("--cuda", type=int,
+                        default=5,
+                        required=False,
+                        help="index of GPU to use")
+    parser.add_argument("--outdir", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/results",
+                        required=False,
+                        help="output directory")
+    parser.add_argument("--weight", type=str,
+                        default="/home/huangdn/Causal3D-Net/src/results/"
+                                "2025-06-21_06-49-30/best_model.pth",
+                        required=False,
+                        help="segmentation trained model weight")
+    args = parser.parse_args()
+    train_Causal3DNet(
+        train_excel=args.train,
+        test_excel=args.test,
+        use_indi=args.indi,
+        use_cent=args.cent,
+        orthogonal=args.orth,
+        adaptive=args.adapt,
+        cuda_id=args.cuda,
+        output_dir=args.outdir,
+        model_weight=args.weight,
+    )
 
     parser = argparse.ArgumentParser(description="Causal 3D Net cross-validation training")
     parser.add_argument("--train", type=str,
