@@ -50,6 +50,7 @@ from src.utils.plot_metrics import (plot_loss_and_dice_metrics,
                                     plot_group_metrics)
 from src.utils.init_weights import init_weights_kaiming, load_shared_weights
 from src.utils.coefficient import compute_lambdas
+from src.utils.data_type import to_number
 from src.metric.loss import (DiceLoss,
                              MultiScaleSegmentationLoss,
                              MultiTaskLoss,
@@ -276,12 +277,15 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
                       cuda_id: int =5,
                       output_dir: Union[str, None] = "/home/huangdn/Causal3D-Net/src/results",
                       model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
-                                          "2025-06-21_06-49-30/last_model.pth") -> dict:
+                                          "2025-06-21_06-49-30/last_model.pth",
+                      logger: Union[logging.Logger, None] = None) -> dict:
 
-    class NullLogger:
-        def info(self, *args, **kwargs): pass
-        def warning(self, *args, **kwargs): pass
-        def error(self, *args, **kwargs): pass
+    if logger is None:
+        class NullLogger:
+            def info(self, *args, **kwargs): pass
+            def warning(self, *args, **kwargs): pass
+            def error(self, *args, **kwargs): pass
+        logger = NullLogger()
 
     logger = NullLogger()
     current_dir = None
@@ -326,6 +330,7 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
     mid_1_transition_epochs = 5
     mid_2_transition_epochs = 5
     start_record_epoch = 10
+    lambda_m, lambda_i, lambda_c = 1, 1, 1
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
     center_groups = {
@@ -483,6 +488,7 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
             ((y_indi, y_main, y_cent),
              (individual_confounder, classify_feature, center_confounder)) = model(x)
 
+            # l_c_main = cls_criterion(y_main * lambda_m, y_cls)
             l_c_main = cls_criterion(y_main, y_cls)
 
             l_indi =  suc_criterion(individual_confounder, cluster) if use_indi else 0
@@ -501,23 +507,23 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
                     l_c_cent = cls_criterion(y_cent, y_cls) if use_cent else 0
 
                     lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
-                                                                   (l_indi + l_o_im + l_c_indi).item(),
-                                                                   (l_cent + l_o_cm + l_c_cent).item(),
+                                                                   to_number(l_indi + l_o_im + l_c_indi),
+                                                                   to_number(l_cent + l_o_cm + l_c_cent),
                                                                    mode=adaptive)
                     loss = (lambda_m * l_c_main +
                             alpha1 * (lambda_i * (l_indi + l_o_im) + lambda_c * (l_cent + l_o_cm)) +
                             alpha2 * (lambda_i * l_c_indi + lambda_c * l_c_cent))
                 else:
                     lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
-                                                                   (l_indi + l_o_im).item(),
-                                                                   (l_cent + l_o_cm).item(),
+                                                                   to_number(l_indi + l_o_im),
+                                                                   to_number(l_cent + l_o_cm),
                                                                    mode=adaptive)
                     loss = (lambda_m * l_c_main +
                             alpha1 * (lambda_i * (l_indi + l_o_im) + lambda_c * (l_cent + l_o_cm)))
             else:
                 lambda_m, lambda_i, lambda_c = compute_lambdas(l_c_main.item(),
-                                                               l_indi.item(),
-                                                               l_cent.item(),
+                                                               to_number(l_indi),
+                                                               to_number(l_cent),
                                                                mode=adaptive)
                 loss = lambda_m * l_c_main + lambda_i * l_indi + lambda_c * l_cent
 
@@ -721,9 +727,13 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
 
 
 def cross_validate_Causal3DNet(train_excel: str,
-                               output_dir: str,
+                               use_indi: int = 1,
+                               use_cent: int = 1,
+                               orthogonal: int = 1,
+                               adaptive: str = "reward_bad",
                                folds: int = 10,
                                cuda_id: int = 5,
+                               output_dir: Union[str, None] = "/home/huangdn/Causal3D-Net/src/results",
                                model_weight: str = "/home/huangdn/Causal3D-Net/src/results/"
                                                    "2025-06-21_06-49-30/last_model.pth") -> dict:
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -741,6 +751,11 @@ def cross_validate_Causal3DNet(train_excel: str,
     logging.getLogger().addHandler(console)
 
     logging.info(f"CV dataset path is: {train_excel}")
+    info_smg = (f"Using individual branch: {'Yes' if use_indi else 'No'}, "
+                f"center branch: {'Yes' if use_cent else 'No'}, "
+                f"orthogonal loss: {'Yes' if orthogonal else 'No'}, "
+                f"adaptive mode: {adaptive}, in causal module.")
+    logging.info(info_smg)
 
     data = pd.read_excel(train_excel)
     targets = data["cancer"].values
@@ -762,12 +777,14 @@ def cross_validate_Causal3DNet(train_excel: str,
         metrics = train_Causal3DNet(
             train_excel=train_path,
             test_excel=val_path,
-            use_indi=1,
-            use_cent=1,
-            orthogonal=1,
+            use_indi=use_indi,
+            use_cent=use_cent,
+            orthogonal=orthogonal,
+            adaptive=adaptive,
             cuda_id=cuda_id,
             output_dir=None,
             model_weight=model_weight,
+            logger=logging.getLogger()
         )
 
         for key, value in metrics.items():

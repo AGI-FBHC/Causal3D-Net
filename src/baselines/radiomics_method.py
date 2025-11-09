@@ -100,7 +100,7 @@ def radiomics_with_SVM(train_excel, test_excel, features) -> dict:
     coef_abs = np.abs(lasso.coef_)
     strong_idx = np.argsort(coef_abs)[::-1]
     n_select = min(10, np.sum(coef_abs > 0))
-    np.random.seed(42)
+    np.random.seed(88)
     selected_idx = strong_idx[:n_select]
 
     train_selected = train_features.iloc[:, selected_idx]
