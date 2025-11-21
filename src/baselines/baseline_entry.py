@@ -393,15 +393,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Reproducing baseline methods from related works")
     parser.add_argument("--train", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+                        default="/home/huangdn/Causal3D-Net/src/dataset/inverse_validation_for_train.xlsx",
                         # required=True,
                         help="path to training dataset")
     parser.add_argument("--test", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+                        default="/home/huangdn/Causal3D-Net/src/dataset/inverse_validation_for_test.xlsx",
                         # required=True,
                         help="path to testing dataset")
     parser.add_argument("--method", type=str,
-                        default="Mukherjee",
+                        default="chen2",
                         choices=["radiomics", "2.5d_vgg", "vit", "3d_cnn",
                                  "hybrid_transformer", "cnet", "neural_transformer",
                                  "PANDA",

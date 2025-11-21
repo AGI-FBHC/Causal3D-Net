@@ -287,7 +287,6 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
             def error(self, *args, **kwargs): pass
         logger = NullLogger()
 
-    logger = NullLogger()
     current_dir = None
     diagnose_dir = None
     best_model_save_path = None
