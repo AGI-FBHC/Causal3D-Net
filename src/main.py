@@ -20,6 +20,10 @@ if __name__ == '__main__':
 
     cv_parser = subparsers.add_parser("cv", help="Cross-validation training")
     cv_parser.add_argument("--train", type=str, required=True, help="path to training dataset (Excel file)")
+    cv_parser.add_argument("--indi", type=int, default=1, choices=[0, 1], help="whether to use the individual branch in causal methods")
+    cv_parser.add_argument("--cent", type=int, default=1, choices=[0, 1], help="whether to use the center branch in causal methods")
+    cv_parser.add_argument("--orth", type=int, default=1, choices=[0, 1], help="whether to use the orthogonal loss in causal methods")
+    cv_parser.add_argument("--adapt", type=str, default="none", choices=["none", "reward_bad", "reward_good"], help="adaptive loss method")
     cv_parser.add_argument("--folds", type=int, default=10, help="number of cross-validation folds")
     cv_parser.add_argument("--cuda", type=int, default=0, help="index of GPU to use")
     cv_parser.add_argument("--outdir", type=str, default="./results", help="output directory for results and logs")
@@ -60,6 +64,10 @@ if __name__ == '__main__':
     elif args.mode == "cv":
         cross_validate_Causal3DNet(
             train_excel=args.train,
+            use_indi=args.indi,
+            use_cent=args.cent,
+            orthogonal=args.orth,
+            adaptive=args.adapt,
             output_dir=args.outdir,
             folds=args.folds,
             cuda_id=args.cuda,

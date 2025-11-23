@@ -905,6 +905,22 @@ if __name__ == '__main__':
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
                         required=True,
                         help="path to training dataset (Excel file)")
+    parser.add_argument("--indi", type=int,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the individual branch in causal methods")
+    parser.add_argument("--cent", type=int,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the center branch in causal methods")
+    parser.add_argument("--orth", type=float,
+                        default=1,
+                        choices=[0, 1],
+                        help="whether to use the orthogonal loss in causal methods")
+    parser.add_argument("--adapt", type=str,
+                        default="none",
+                        choices=["none", "reward_bad", "reward_good"],
+                        help="adaptive loss method")
     parser.add_argument("--folds", type=int,
                         default=10,
                         help="number of cross-validation folds")
@@ -923,6 +939,10 @@ if __name__ == '__main__':
 
     summary = cross_validate_Causal3DNet(
         train_excel=args.train,
+        use_indi=args.indi,
+        use_cent=args.cent,
+        orthogonal=args.orth,
+        adaptive=args.adapt,
         output_dir=args.outdir,
         folds=args.folds,
         cuda_id=args.cuda,
