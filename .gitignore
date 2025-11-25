@@ -195,6 +195,7 @@ Icon
 /src/results/
 /src/logging_record/
 /src/test.py
+src/utils/chore.py
 
 README_self.md
 off_command.sh
