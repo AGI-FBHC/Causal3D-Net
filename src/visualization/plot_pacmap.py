@@ -6,77 +6,63 @@
 # @Project : Causal3D-Net
 import os, argparse
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 import pacmap
 
+from src.visualization.extract_features import load_feature_and_label
+from src.utils.visualization_of_experimental_results import draw_2dim_scatter
+
 
 plt.rcParams['figure.dpi'] = 1200
 
 def run_pacmap(feature_csv, label_excel, label_name, save_path_png, load_pacmap=False):
-    """
-    feature_csv:   特征 CSV（Causal / Center / Individual）
-    label_excel:   标签文件
-    label_name:    用于着色的标签
-    save_path_png: PaCMAP 图保存路径
-    load_pacmap:   若为 True，则优先从 CSV 读取降维结果
-    """
-    print(f"\nLoading Features: {feature_csv}")
-    df_feat = pd.read_csv(feature_csv)
-
-    print(f"Loading Labels: {label_excel}")
-    df_label = pd.read_excel(label_excel)
-    df_label["filename"] = df_label["image_path"].apply(lambda x: os.path.basename(x))
-
-    test_centers = [0, 3, 6, 8, 15, 16, 17]
-    df_label = df_label[df_label["center"].isin(test_centers)]
-    print(f"Label samples after test filtering: {len(df_label)}")
-
-    df = df_feat.merge(df_label, on="filename", how="inner")
-    print(f"feature shape: {df_feat.shape}, label shape: {df_label.shape}")
-    print(f"Matched samples = {len(df)}")
+    df = load_feature_and_label(feature_csv, label_excel)
 
     save_pacmap_csv = save_path_png.replace(".png", ".csv")
 
     if load_pacmap and os.path.exists(save_pacmap_csv):
-        print(f"Loading existing PaCMAP results: {save_pacmap_csv}")
-        X_p = pd.read_csv(save_pacmap_csv).values
+        X_2d = pd.read_csv(save_pacmap_csv).values
+        print(f"Loaded PaCMAP csv: {save_pacmap_csv}")
     else:
         X = df.drop(columns=["filename", "image_path", "mask_path",
                              "cancer", "center", "cluster"], errors="ignore").values
 
-        print("Running PaCMAP...")
         reducer = pacmap.PaCMAP(
             n_components=2,
+            random_state=42,
             n_neighbors=10,
             MN_ratio=0.5,
             FP_ratio=2.0,
-            random_state=42
         )
-        X_p = reducer.fit_transform(X, init="pca")
+        X_2d = reducer.fit_transform(X)
 
-        print(f"Saving PaCMAP 2D coordinates to: {save_pacmap_csv}")
-        pd.DataFrame(X_p, columns=["pacmap_x", "pacmap_y"]).to_csv(save_pacmap_csv, index=False)
+        pd.DataFrame(X_2d, columns=["pacmap_x", "pacmap_y"]).to_csv(save_pacmap_csv, index=False)
+        print(f"Saved PaCMAP csv: {save_pacmap_csv}")
 
-    y = df[label_name].values
+    # center 分组
+    if label_name == "center":
+        group_map = {
+            0: 'test I', 3: 'test I',
+            6: 'test II', 8: 'test II',
+            15: 'test III', 16: 'test III', 17: 'test III'
+        }
+        y = np.array([group_map[c] for c in df["center"].values])
+        is_center_group = True
+    else:
+        y = df[label_name].values
+        is_center_group = False
 
-    plt.figure(figsize=(7, 6))
-    scatter = plt.scatter(X_p[:, 0], X_p[:, 1], c=y,
-                          cmap="tab10", s=15, alpha=0.8)
-
-    plt.title(f"PaCMAP ({os.path.basename(feature_csv)}) colored by {label_name}")
-    plt.xlabel("PaCMAP-1")
-    plt.ylabel("PaCMAP-2")
-
-    handles, labels = scatter.legend_elements(prop="colors")
-    plt.legend(handles, [f"{label_name}={lab}" for lab in labels], title="Label")
-
-    plt.tight_layout()
-    plt.savefig(save_path_png)
-    print(f"Saved PNG: {save_path_png}")
-    plt.close()
-
+    draw_2dim_scatter(
+        X_2d, y,
+        title=f"PaCMAP colored by {label_name}",
+        xlabel="PaCMAP-1",
+        ylabel="PaCMAP-2",
+        save_path_png=save_path_png,
+        is_center_group=is_center_group
+    )
 
 
 def run_all_pacmap(feature_dir, label_excel, load_pacmap=False):
@@ -98,10 +84,10 @@ def run_all_pacmap(feature_dir, label_excel, load_pacmap=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run PaCMAP visualization on feature CSV files")
 
-    parser.add_argument("--feature_dir", type=str, required=True,
-                        default="/home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16",
+    parser.add_argument("--feature_dir", type=str, required=False,
+                        default="/home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16/features",
                         help="Directory containing features_causal.csv etc.")
-    parser.add_argument("--label_excel", type=str, required=True,
+    parser.add_argument("--label_excel", type=str, required=False,
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
                         help="Excel containing labels")
     parser.add_argument("--load_pacmap", type=int, choices=[0, 1], default=0,

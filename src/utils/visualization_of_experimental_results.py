@@ -11,6 +11,47 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+def draw_2dim_scatter(X_2d, y, title, xlabel, ylabel, save_path_png, is_center_group=False):
+    plt.figure(figsize=(7, 6))
+
+    if is_center_group:
+        unique_groups = ['test I', 'test II', 'test III']
+        cmap = plt.cm.get_cmap("tab10", len(unique_groups))
+        color_map = {group: cmap(i) for i, group in enumerate(unique_groups)}
+
+        for g in unique_groups:
+            mask = (y == g)
+            plt.scatter(
+                X_2d[mask, 0], X_2d[mask, 1],
+                color=color_map[g],
+                s=15, alpha=0.8,
+                label=g
+            )
+        plt.legend(title="Center Group")
+
+    else:
+        unique_labels = sorted(np.unique(y))
+        cmap = plt.cm.get_cmap("tab10", len(unique_labels))
+
+        for idx, lab in enumerate(unique_labels):
+            mask = (y == lab)
+            plt.scatter(
+                X_2d[mask, 0], X_2d[mask, 1],
+                color=cmap(idx),
+                s=15, alpha=0.8,
+                label=f"{lab}"
+            )
+        plt.legend(title="Label")
+
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.tight_layout()
+    plt.savefig(save_path_png)
+    print(f"Saved PNG: {save_path_png}")
+    plt.close()
+
+
 def vis_10_folds_cv(
         csv_path="/home/huangdn/Causal3D-Net/src/logging_record/cross_validation_results.csv",
         save_path="/home/huangdn/Causal3D-Net/src/logging_record/10_folds_cross_validation_results.png"

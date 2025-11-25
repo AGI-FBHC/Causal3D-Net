@@ -19,6 +19,25 @@ from src.dataset.PC_dataset import PCDataset
 from src.models.Causal3DNet import Causal3DNet
 
 
+def load_feature_and_label(feature_csv, label_excel):
+    print(f"\nLoading Features: {feature_csv}")
+    df_feat = pd.read_csv(feature_csv)
+
+    print(f"Loading Labels: {label_excel}")
+    df_label = pd.read_excel(label_excel)
+    df_label["filename"] = df_label["image_path"].apply(lambda x: os.path.basename(x))
+
+    test_centers = [0, 3, 6, 8, 15, 16, 17]
+    df_label = df_label[df_label["center"].isin(test_centers)]
+
+    print(f"Label samples after test filtering: {len(df_label)}")
+
+    df = df_feat.merge(df_label, on="filename", how="inner")
+    print(f"Matched samples = {len(df)}")
+
+    return df
+
+
 def extract_features(model_dir: str = "/home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32",
                      test_excel: str = "/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
                      batch_size: int = 4,
