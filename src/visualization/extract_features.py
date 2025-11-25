@@ -19,8 +19,6 @@ from src.dataset.PC_dataset import PCDataset
 from src.models.Causal3DNet import Causal3DNet
 
 
-# /home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32
-# /home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16
 def extract_features(model_dir: str = "/home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32",
                      test_excel: str = "/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
                      batch_size: int = 4,
@@ -88,6 +86,8 @@ def extract_features(model_dir: str = "/home/huangdn/Causal3D-Net/src/results/20
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract Causal3D-Net features on test dataset")
 
+    # /home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32
+    # /home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16
     parser.add_argument("--model_dir", type=str,
         default="/home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32",
         required=False,
