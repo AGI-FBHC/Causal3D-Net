@@ -36,20 +36,32 @@ def run_umap(feature_csv, label_excel, label_name, save_path_png, load_umap=Fals
         )
         X_2d = reducer.fit_transform(X)
 
-        pd.DataFrame(X_2d, columns=["umap_x", "umap_y"]).to_csv(save_umap_csv, index=False)
+        filenames = df["filename"].values
+        umap_df = pd.DataFrame({
+            "filename": filenames,
+            "umap_x": X_2d[:, 0],
+            "umap_y": X_2d[:, 1],
+        })
+        umap_df.to_csv(save_umap_csv, index=False)
         print(f"Saved UMAP csv: {save_umap_csv}")
 
-    if label_name == "center":
-        group_map = {
-            0: 'test I', 3: 'test I',
-            6: 'test II', 8: 'test II',
-            15: 'test III', 16: 'test III', 17: 'test III'
-        }
-        y = np.array([group_map[c] for c in df["center"].values])
-        is_center_group = True
-    else:
-        y = df[label_name].values
-        is_center_group = False
+    # if label_name == "center":
+    #     group_map = {
+    #         2: 'test I', 5: 'test I', 4: 'test I', 7: 'test I',
+    #         11: 'test II', 13: 'test II',
+    #         8: 'test III',
+    #     }
+    #     df_filtered = df[df["center"].isin(group_map.keys())].copy()
+    #     X_2d = X_2d[df["center"].isin(group_map.keys())]
+    #
+    #     y = df_filtered["center"].map(group_map).values
+    #     is_center_group = True
+    # else:
+    #     y = df[label_name].values
+    #     is_center_group = False
+
+    y = df[label_name].values
+    is_center_group = False
 
     draw_2dim_scatter(
         X_2d, y,
@@ -82,10 +94,11 @@ if __name__ == "__main__":
     # /home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx
     parser = argparse.ArgumentParser(description="Run UMAP visualization on feature CSV files")
     parser.add_argument("--feature_dir", type=str, required=False,
-                        default="/home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16/features",
+                        default="/home/huangdn/Causal3D-Net/src/results/2025-11-27_13-25-51/features",
                         help="Path to directory containing features CSV files")
     parser.add_argument("--label_excel", type=str, required=False,
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+                        # default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
                         help="Path to the label excel file (e.g., dataset_for_test.xlsx)")
     parser.add_argument("--load_umap", type=int, choices=[0, 1], default=0,
                         help="1 to load existing UMAP CSV files, 0 to recompute")

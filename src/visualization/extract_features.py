@@ -27,10 +27,9 @@ def load_feature_and_label(feature_csv, label_excel):
     df_label = pd.read_excel(label_excel)
     df_label["filename"] = df_label["image_path"].apply(lambda x: os.path.basename(x))
 
-    test_centers = [0, 3, 6, 8, 15, 16, 17]
-    df_label = df_label[df_label["center"].isin(test_centers)]
-
-    print(f"Label samples after test filtering: {len(df_label)}")
+    # test_centers = [0, 3, 6, 8, 15, 16, 17]
+    # df_label = df_label[df_label["center"].isin(test_centers)]
+    # print(f"Label samples after test filtering: {len(df_label)}")
 
     df = df_feat.merge(df_label, on="filename", how="inner")
     print(f"Matched samples = {len(df)}")
@@ -44,7 +43,8 @@ def extract_features(model_dir: str = "/home/huangdn/Causal3D-Net/src/results/20
                      cuda_id: int = 5):
 
     output_dir = os.path.join(model_dir, "features")
-    model_path = os.path.join(model_dir, "best_model.pth")
+    # model_path = os.path.join(model_dir, "best_model.pth")
+    model_path = os.path.join(model_dir, "last_model.pth")
     os.makedirs(output_dir, exist_ok=True)
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
@@ -103,16 +103,18 @@ def extract_features(model_dir: str = "/home/huangdn/Causal3D-Net/src/results/20
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract Causal3D-Net features on test dataset")
+    parser = argparse.ArgumentParser(description="Extract Causal3D-Net features on dataset")
 
     # /home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32
     # /home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16
+    # /home/huangdn/Causal3D-Net/src/results/2025-11-27_13-25-51
     parser.add_argument("--model_dir", type=str,
-        default="/home/huangdn/Causal3D-Net/src/results/2025-07-04_00-37-32",
+        default="/home/huangdn/Causal3D-Net/src/results/2025-11-27_13-25-51",
         required=False,
         help="Directory of the trained model")
     parser.add_argument("--test_excel", type=str,
-        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+        # default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
         required=False,
         help="Path to the test Excel file")
     parser.add_argument("--batch_size", type=int, default=4,
