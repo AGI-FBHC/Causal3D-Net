@@ -211,7 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_dir", type=str,
                         default="/home/huangdn/Causal3D-Net/src/results/2025-11-05_02-24-16", required=False)
     parser.add_argument("--excel_path", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_gcam.xlsx", required=False)
+                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_vis.xlsx", required=False)
     parser.add_argument("--cuda_id", type=int, default=5)
     args = parser.parse_args()
 
