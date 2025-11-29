@@ -2,7 +2,7 @@
 # @Time    : 2025/11/29 14:51
 # @Author  : D.N. Huang
 # @Email   : CarlCypress@yeah.net
-# @FileName: shape_for_ct.py
+# @FileName: shap_for_ct.py
 # @Project : Causal3D-Net
 import os, argparse
 
