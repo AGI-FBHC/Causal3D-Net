@@ -10,7 +10,11 @@ import cv2
 import numpy as np
 import pandas as pd
 
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+
 from tqdm.auto import tqdm
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from skimage import measure
@@ -113,6 +117,35 @@ def show_slices_with_shap(volume: torch.Tensor,
     plt.close()
 
 
+def save_one_slice_png(vol_np, shap_np, mask_np, slice_idx, save_path,
+                       outside_color=0.85, outside_alpha=0.35, shap_alpha=0.5):
+    img = vol_np[slice_idx].astype(np.float32)
+    shap_img = shap_np[slice_idx].astype(np.float32)
+
+    img = (img - img.min()) / (img.max() - img.min() + 1e-8)
+
+    plt.figure(figsize=(10, 5))
+    plt.imshow(img, cmap="gray", vmin=0, vmax=1)
+
+    if mask_np is not None:
+        mask_slice = mask_np[slice_idx].astype(bool)
+
+        overlay = np.full_like(img, outside_color, dtype=np.float32)
+        overlay_alpha = (~mask_slice).astype(np.float32) * outside_alpha
+        plt.imshow(overlay, cmap="gray", vmin=0, vmax=1, alpha=overlay_alpha)
+
+        alpha_map = mask_slice.astype(np.float32) * shap_alpha
+    else:
+        alpha_map = shap_alpha
+
+    vlim = float(np.max(np.abs(shap_img)) + 1e-8)
+    plt.imshow(shap_img, cmap="seismic", vmin=-vlim, vmax=vlim, alpha=alpha_map)
+
+    plt.axis("off")
+    plt.savefig(save_path, dpi=600, bbox_inches="tight")
+    plt.close()
+
+
 def save_shap_volume(model_dir: str,
                      excel_path: str,
                      cuda_id: int = 0,
@@ -164,7 +197,10 @@ def run_shap_visualization(model_dir: str,
                            excel_path: str,
                            cuda_id: int = 0,
                            target_class: int = 1,
-                           background_samples: int = 4):
+                           background_samples: int = 4,
+                           MAX_WORKERS: int = 8,
+                           use_process: bool = True,
+                           compute_shap: bool = False,):
     fix_seed()
     print(f"\n[INFO] Running SHAP visualization ...")
     print(f"model_dir     = {model_dir}")
@@ -172,25 +208,19 @@ def run_shap_visualization(model_dir: str,
     print(f"cuda_id       = {cuda_id}")
     print(f"target_class  = {target_class}\n")
 
-    # 0) 先计算并保存所有病例的 SHAP volume（只做一次）
-    save_shap_volume(
-        model_dir=model_dir,
-        excel_path=excel_path,
-        cuda_id=cuda_id,
-        target_class=target_class,
-        background_samples=background_samples,
-    )
+    if compute_shap:
+        save_shap_volume(model_dir=model_dir,
+                         excel_path=excel_path,
+                         cuda_id=cuda_id,
+                         target_class=target_class,
+                         background_samples=background_samples,)
+        device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
+    else:
+        print("[INFO] Skip save_shap_volume(): using existing SHAP volumes on disk.")
+        device = torch.device("cpu")
 
-    device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
-
-    checkpoint_path = os.path.join(model_dir, "best_model.pth")
     save_root = os.path.join(model_dir, "shap")                # 保存png
     save_root_volume = os.path.join(model_dir, "shap_volume")  # 读取npy
-
-    model_shap = Causal3DNetForSHAP(
-        ckpt_path=checkpoint_path,
-        cuda_id=cuda_id,
-    )
 
     pre_transform = tio.Compose([
         Windowing(window_center=70, window_width=340),
@@ -205,35 +235,34 @@ def run_shap_visualization(model_dir: str,
     )
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
 
-    # 1) 只做可视化：读取每个患者的 shap volume 再画图
-    for filename, X, cls_label, msk_label, center, cluster in tqdm(loader, desc="Visualization", unit="case"):
-        case_name = filename[0].split(".")[0]
-        fig_save_dir = os.path.join(save_root, case_name)
-        os.makedirs(fig_save_dir, exist_ok=True)
+    Executor = ProcessPoolExecutor if use_process else ThreadPoolExecutor
+    # 进程/线程池放外面复用
+    with Executor(max_workers=MAX_WORKERS) as ex:
+        for filename, X, cls_label, msk_label, center, cluster in tqdm(loader, desc="Visualization", unit="case"):
+            case_name = filename[0].split(".")[0]
+            fig_save_dir = os.path.join(save_root, case_name)
+            os.makedirs(fig_save_dir, exist_ok=True)
 
-        # 读取该患者 shap volume（由 save_shap_volume 生成）
-        shap_npy_path = os.path.join(save_root_volume, f"{case_name}_shap.npy")
-        if not os.path.exists(shap_npy_path):
-            print(f"[WARN] Missing SHAP volume for case {case_name}: {shap_npy_path}")
-            continue
+            shap_npy_path = os.path.join(save_root_volume, f"{case_name}_shap.npy")
+            if not os.path.exists(shap_npy_path):
+                print(f"[WARN] Missing SHAP volume for case {case_name}: {shap_npy_path}")
+                continue
 
-        shap_np = np.load(shap_npy_path)  # [D,H,W]
-        shap_map = torch.from_numpy(shap_np)  # torch CPU tensor
+            shap_np = np.load(shap_npy_path)
+            vol_np = X.squeeze().detach().cpu().numpy()
+            mask_np = msk_label.squeeze().detach().cpu().numpy() if msk_label is not None else None
 
-        # 输入用于可视化（你 show_slices_with_shap 内部会 .cpu().numpy()）
-        X = X.to(device)
+            depth = vol_np.shape[0]
 
-        depth = X.shape[2]
-        for slice_idx in range(depth):
-            save_path = os.path.join(fig_save_dir, f"shap_slice_{slice_idx}.png")
-            show_slices_with_shap(
-                X, shap_map,
-                mask=msk_label,
-                slice_index=slice_idx,
-                save_path=save_path
-            )
+            futures = []
+            for slice_idx in range(depth):
+                save_path = os.path.join(fig_save_dir, f"shap_slice_{slice_idx}.png")
+                futures.append(ex.submit(save_one_slice_png, vol_np, shap_np, mask_np, slice_idx, save_path))
 
-        print(f"[OK] SHAP png saved for case: {case_name}")
+            for f in as_completed(futures):
+                f.result()
+
+            print(f"[OK] SHAP png saved for case: {case_name}")
 
 
 if __name__ == "__main__":
