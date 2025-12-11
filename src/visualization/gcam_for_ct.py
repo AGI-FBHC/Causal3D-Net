@@ -9,6 +9,7 @@ import os, argparse
 import cv2
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm
 
 import matplotlib.pyplot as plt
 
@@ -178,14 +179,15 @@ def run_gcam_visualization(model_dir: str, excel_path: str, cuda_id: int = 5):
 
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
 
-    for filename, X, cls_label, msk_label, center, cluster in loader:
+    for filename, X, cls_label, msk_label, center, cluster in tqdm(loader, total=len(loader), desc="GCAM", unit="case"):
 
         X = X.to(device)
         msk_label = msk_label.to(device)
 
         print(f"\nProcessing: {filename[0]} ...")
 
-        cam = grad_cam_3d(model, X)
+        # cam = grad_cam_3d(model, X)
+        cam = grad_cam_3d(model, X, target_class=torch.ones(X.size(0), dtype=torch.long, device=X.device))
         cam_up = upsample_cam_to_input(cam, target_size=X.shape[2:])
 
         case_name = filename[0].split(".")[0]
