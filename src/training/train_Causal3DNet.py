@@ -35,6 +35,7 @@ from sklearn.metrics import (accuracy_score,
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from src.dataset.PC_dataset import PCDataset
+from src.dataset.Seg_dataset import SegDataset
 from src.models.Causal3DNet import SegNet, Causal3DNet
 from src.augmentation.window import Windowing
 from src.augmentation.brightness import MultiplicativeBrightnessTransform
@@ -61,9 +62,6 @@ from src.metric.compute_score import compute_dice_score, specificity_score
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
-
-
-
 
 
 def train_seg(train_excel,
@@ -103,10 +101,15 @@ def train_seg(train_excel,
         lr_lambda=linear_lr_lambda(num_epochs)
     )
 
+    patch_size = (40, 160, 256)
+    half_patch = tuple(s // 2 for s in patch_size)
+
     pre_transform = tio.Compose([
+        tio.ToCanonical(),
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),
-        tio.Resize((40, 160, 256)),
+        tio.Resample((2.5, 1.0, 1.0)),
+        tio.Pad(half_patch),
     ])
     aug_transform = tio.Compose([
         GaussianNoiseTransform(
@@ -186,22 +189,28 @@ def train_seg(train_excel,
     ])
     test_transform = pre_transform
 
-    train_dataset = PCDataset(excel_path=train_excel,
-                              transform=train_transform,
-                              return_type=1)
-    test_dataset = PCDataset(excel_path=test_excel,
-                             transform=test_transform,
-                             return_type=1)
-    train_loader = DataLoader(train_dataset,
-                              batch_size=batch_size,
-                              shuffle=True,
-                              num_workers=4,
-                              pin_memory=True)
-    test_loader = DataLoader(test_dataset,
-                             batch_size=batch_size,
-                             shuffle=False,
-                             num_workers=4,
-                             pin_memory=True)
+    train_dataset = SegDataset(excel_path=train_excel, transform=train_transform, verify_paths=True)
+    test_dataset = SegDataset(excel_path=test_excel, transform=test_transform, verify_paths=True)
+
+    sampler = tio.LabelSampler(patch_size=patch_size, label_name="mask")
+
+    train_queue = tio.Queue(subjects_dataset=train_dataset,
+                            max_length=1024,
+                            samples_per_volume=8,
+                            sampler=sampler,
+                            num_workers=8,
+                            shuffle_subjects=True,
+                            shuffle_patches=True,)
+    test_queue = tio.Queue(subjects_dataset=test_dataset,
+                           max_length=256,
+                           samples_per_volume=4,
+                           sampler=sampler,
+                           num_workers=2,
+                           shuffle_subjects=False,
+                           shuffle_patches=False,)
+
+    train_loader = tio.SubjectsLoader(train_queue, batch_size=batch_size, num_workers=0, pin_memory=True)
+    test_loader = tio.SubjectsLoader(test_queue, batch_size=batch_size, num_workers=0, pin_memory=True)
 
     all_train_losses, all_test_losses = [], []
     all_train_dices, all_test_dices = [], []
@@ -210,8 +219,9 @@ def train_seg(train_excel,
     for epoch in tqdm(range(num_epochs)):
         model.train()
         train_loss, train_dice = 0.0, 0.0
-        for x, y in train_loader:
-            x, y = x.to(device), y.to(device)
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
+            x = batch["image"][tio.DATA].to(device)
+            y = batch["mask"][tio.DATA].to(device)
             optimizer.zero_grad()
             y_sgs, y_cls = model(x)
             loss = criterion(y_sgs, y)
@@ -229,8 +239,9 @@ def train_seg(train_excel,
         model.eval()
         test_loss, test_dice = 0.0, 0.0
         with torch.no_grad():
-            for x, y in test_loader:
-                x, y = x.to(device), y.to(device)
+            for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
+                x = batch["image"][tio.DATA].to(device)
+                y = batch["mask"][tio.DATA].to(device)
 
                 y_sgs, y_cls = model(x)
                 loss = criterion(y_sgs, y)
@@ -824,32 +835,7 @@ def cross_validate_Causal3DNet(train_excel: str,
 
 if __name__ == '__main__':
 
-    # parser = argparse.ArgumentParser(description="Segmentation training")
-    # parser.add_argument("--train", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
-    #                     # required=True,
-    #                     help="path to training dataset")
-    # parser.add_argument("--test", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
-    #                     # required=True,
-    #                     help="path to testing dataset")
-    # parser.add_argument("--cuda", type=int,
-    #                     default=5,
-    #                     required=False,
-    #                     help="index of GPU to use")
-    # parser.add_argument("--outdir", type=str,
-    #                     default="/home/huangdn/Causal3D-Net/src/results",
-    #                     required=False,
-    #                     help="output directory")
-    # args = parser.parse_args()
-    # train_seg(
-    #     train_excel=args.train,
-    #     test_excel=args.test,
-    #     cuda_id=args.cuda,
-    #     output_dir=args.outdir
-    # )
-
-    parser = argparse.ArgumentParser(description="Causal 3D Net training")
+    parser = argparse.ArgumentParser(description="Segmentation training")
     parser.add_argument("--train", type=str,
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
                         # required=True,
@@ -858,22 +844,6 @@ if __name__ == '__main__':
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
                         # required=True,
                         help="path to testing dataset")
-    parser.add_argument("--indi", type=int,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the individual branch in causal methods")
-    parser.add_argument("--cent", type=int,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the center branch in causal methods")
-    parser.add_argument("--orth", type=float,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the orthogonal loss in causal methods")
-    parser.add_argument("--adapt", type=str,
-                        default="none",
-                        choices=["none", "reward_bad", "reward_good"],
-                        help="adaptive loss method")
     parser.add_argument("--cuda", type=int,
                         default=5,
                         required=False,
@@ -882,70 +852,111 @@ if __name__ == '__main__':
                         default="/home/huangdn/Causal3D-Net/src/results",
                         required=False,
                         help="output directory")
-    parser.add_argument("--weight", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/results/"
-                                "2025-06-21_06-49-30/best_model.pth",
-                        required=False,
-                        help="segmentation trained model weight")
     args = parser.parse_args()
-    train_Causal3DNet(
+    train_seg(
         train_excel=args.train,
         test_excel=args.test,
-        use_indi=args.indi,
-        use_cent=args.cent,
-        orthogonal=args.orth,
-        adaptive=args.adapt,
         cuda_id=args.cuda,
-        output_dir=args.outdir,
-        model_weight=args.weight,
+        output_dir=args.outdir
     )
 
-    parser = argparse.ArgumentParser(description="Causal 3D Net cross-validation training")
-    parser.add_argument("--train", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
-                        required=True,
-                        help="path to training dataset (Excel file)")
-    parser.add_argument("--indi", type=int,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the individual branch in causal methods")
-    parser.add_argument("--cent", type=int,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the center branch in causal methods")
-    parser.add_argument("--orth", type=float,
-                        default=1,
-                        choices=[0, 1],
-                        help="whether to use the orthogonal loss in causal methods")
-    parser.add_argument("--adapt", type=str,
-                        default="none",
-                        choices=["none", "reward_bad", "reward_good"],
-                        help="adaptive loss method")
-    parser.add_argument("--folds", type=int,
-                        default=10,
-                        help="number of cross-validation folds")
-    parser.add_argument("--cuda", type=int,
-                        default=5,
-                        help="index of GPU to use")
-    parser.add_argument("--outdir", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/results",
-                        help="output directory for results and logs")
-    parser.add_argument("--weight", type=str,
-                        default="/home/huangdn/Causal3D-Net/src/results/"
-                                "2025-06-21_06-49-30/best_model.pth",
-                        required=False,
-                        help="segmentation trained model weight")
-    args = parser.parse_args()
-
-    summary = cross_validate_Causal3DNet(
-        train_excel=args.train,
-        use_indi=args.indi,
-        use_cent=args.cent,
-        orthogonal=args.orth,
-        adaptive=args.adapt,
-        output_dir=args.outdir,
-        folds=args.folds,
-        cuda_id=args.cuda,
-        model_weight=args.weight,
-    )
-    pass
+    # parser = argparse.ArgumentParser(description="Causal 3D Net training")
+    # parser.add_argument("--train", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+    #                     # required=True,
+    #                     help="path to training dataset")
+    # parser.add_argument("--test", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_test.xlsx",
+    #                     # required=True,
+    #                     help="path to testing dataset")
+    # parser.add_argument("--indi", type=int,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the individual branch in causal methods")
+    # parser.add_argument("--cent", type=int,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the center branch in causal methods")
+    # parser.add_argument("--orth", type=float,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the orthogonal loss in causal methods")
+    # parser.add_argument("--adapt", type=str,
+    #                     default="none",
+    #                     choices=["none", "reward_bad", "reward_good"],
+    #                     help="adaptive loss method")
+    # parser.add_argument("--cuda", type=int,
+    #                     default=5,
+    #                     required=False,
+    #                     help="index of GPU to use")
+    # parser.add_argument("--outdir", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results",
+    #                     required=False,
+    #                     help="output directory")
+    # parser.add_argument("--weight", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results/"
+    #                             "2025-06-21_06-49-30/best_model.pth",
+    #                     required=False,
+    #                     help="segmentation trained model weight")
+    # args = parser.parse_args()
+    # train_Causal3DNet(
+    #     train_excel=args.train,
+    #     test_excel=args.test,
+    #     use_indi=args.indi,
+    #     use_cent=args.cent,
+    #     orthogonal=args.orth,
+    #     adaptive=args.adapt,
+    #     cuda_id=args.cuda,
+    #     output_dir=args.outdir,
+    #     model_weight=args.weight,
+    # )
+    #
+    # parser = argparse.ArgumentParser(description="Causal 3D Net cross-validation training")
+    # parser.add_argument("--train", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_train.xlsx",
+    #                     required=True,
+    #                     help="path to training dataset (Excel file)")
+    # parser.add_argument("--indi", type=int,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the individual branch in causal methods")
+    # parser.add_argument("--cent", type=int,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the center branch in causal methods")
+    # parser.add_argument("--orth", type=float,
+    #                     default=1,
+    #                     choices=[0, 1],
+    #                     help="whether to use the orthogonal loss in causal methods")
+    # parser.add_argument("--adapt", type=str,
+    #                     default="none",
+    #                     choices=["none", "reward_bad", "reward_good"],
+    #                     help="adaptive loss method")
+    # parser.add_argument("--folds", type=int,
+    #                     default=10,
+    #                     help="number of cross-validation folds")
+    # parser.add_argument("--cuda", type=int,
+    #                     default=5,
+    #                     help="index of GPU to use")
+    # parser.add_argument("--outdir", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results",
+    #                     help="output directory for results and logs")
+    # parser.add_argument("--weight", type=str,
+    #                     default="/home/huangdn/Causal3D-Net/src/results/"
+    #                             "2025-06-21_06-49-30/best_model.pth",
+    #                     required=False,
+    #                     help="segmentation trained model weight")
+    # args = parser.parse_args()
+    #
+    # summary = cross_validate_Causal3DNet(
+    #     train_excel=args.train,
+    #     use_indi=args.indi,
+    #     use_cent=args.cent,
+    #     orthogonal=args.orth,
+    #     adaptive=args.adapt,
+    #     output_dir=args.outdir,
+    #     folds=args.folds,
+    #     cuda_id=args.cuda,
+    #     model_weight=args.weight,
+    # )
+    # pass

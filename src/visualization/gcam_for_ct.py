@@ -186,8 +186,8 @@ def run_gcam_visualization(model_dir: str, excel_path: str, cuda_id: int = 5):
 
         print(f"\nProcessing: {filename[0]} ...")
 
-        # cam = grad_cam_3d(model, X)
-        cam = grad_cam_3d(model, X, target_class=torch.ones(X.size(0), dtype=torch.long, device=X.device))
+        cam = grad_cam_3d(model, X)
+        # cam = grad_cam_3d(model, X, target_class=torch.ones(X.size(0), dtype=torch.long, device=X.device))
         cam_up = upsample_cam_to_input(cam, target_size=X.shape[2:])
 
         case_name = filename[0].split(".")[0]

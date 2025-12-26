@@ -200,7 +200,7 @@ def run_shap_visualization(model_dir: str,
                            background_samples: int = 4,
                            MAX_WORKERS: int = 8,
                            use_process: bool = True,
-                           compute_shap: bool = False,):
+                           compute_shap: bool = True,):
     fix_seed()
     print(f"\n[INFO] Running SHAP visualization ...")
     print(f"model_dir     = {model_dir}")
@@ -274,6 +274,7 @@ if __name__ == "__main__":
                         default="/home/huangdn/Causal3D-Net/src/dataset/dataset_for_vis.xlsx",
                         required=False)
     parser.add_argument("--cuda_id", type=int, default=0)
+    parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--target_class", type=int, default=1)
     args = parser.parse_args()
 
@@ -282,6 +283,7 @@ if __name__ == "__main__":
         excel_path=args.excel_path,
         cuda_id=args.cuda_id,
         target_class=args.target_class,
+        MAX_WORKERS=args.workers,
     )
 
 
