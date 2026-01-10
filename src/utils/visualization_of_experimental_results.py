@@ -109,9 +109,9 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
 
     order = [
         "Baseline",
-        "Baseline+cent",
-        "Baseline+indi",
-        "CCLM(cent+indi)"
+        "Baseline+ECRM",
+        "Baseline+ICRM",
+        "CCLM(ECRM+ICRM)"
     ]
 
     metrics = ["Acc", "AUC", "Sen", "Spe", "Prec", "F1"]
@@ -350,8 +350,8 @@ def vis_sota_model(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/com
 
 if __name__ == '__main__':
     # vis_10_folds_cv()
-    # vis_CCLM()
-    vis_ACIM()
+    vis_CCLM()
+    # vis_ACIM()
     # vis_ablation()
     # vis_sota_model()
     pass
