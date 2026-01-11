@@ -90,6 +90,10 @@ def train_seg(train_excel,
     num_epochs = 50
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
+    logging.info("Pancreas Structure Prior Module training")
+    logging.info(f"train={train_excel} | test={test_excel} | "
+                 f"bs={batch_size}, lr={initial_lr}, epochs={num_epochs}, device={device}")
+
     model = SegNet(mask_num=2)
     model.apply(init_weights_kaiming)
     model.to(device)
@@ -239,7 +243,7 @@ def train_seg(train_excel,
         model.eval()
         test_loss, test_dice = 0.0, 0.0
         with torch.no_grad():
-            for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
+            for batch in tqdm(test_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False):
                 x = batch["image"][tio.DATA].to(device)
                 y = batch["mask"][tio.DATA].to(device)
 
