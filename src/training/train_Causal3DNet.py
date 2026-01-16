@@ -87,7 +87,7 @@ def train_seg(train_excel,
     batch_size = 4
     initial_lr = 1e-2
     weight_decay = 3e-5
-    num_epochs = 50
+    num_epochs = 20
     device = torch.device(f"cuda:{cuda_id}" if torch.cuda.is_available() else "cpu")
 
     logging.info("Pancreas Structure Prior Module training")
@@ -107,13 +107,15 @@ def train_seg(train_excel,
 
     patch_size = (40, 160, 256)
     half_patch = tuple(s // 2 for s in patch_size)
+    margin = (8, 16, 16)
+    pad_size = tuple(h + m for h, m in zip(half_patch, margin))
 
     pre_transform = tio.Compose([
         tio.ToCanonical(),
         Windowing(window_center=70, window_width=340),
         tio.RescaleIntensity(out_min_max=(0, 1)),
         tio.Resample((2.5, 1.0, 1.0)),
-        tio.Pad(half_patch),
+        tio.Pad(pad_size),
     ])
     aug_transform = tio.Compose([
         GaussianNoiseTransform(
@@ -189,7 +191,8 @@ def train_seg(train_excel,
 
     train_transform = tio.Compose([
         *pre_transform.transforms,  # unpack preprocessing
-        *aug_transform.transforms  # unpack augmentation
+        *aug_transform.transforms,  # unpack augmentation
+        tio.Pad(pad_size),
     ])
     test_transform = pre_transform
 
@@ -548,6 +551,7 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
             total_loss += loss.item()
             total_cls_loss += l_c_main.item()
 
+            # probs = torch.softmax(y_main * lambda_m, dim=1)[:, 1].detach().cpu().numpy()
             probs = torch.softmax(y_main, dim=1)[:, 1].detach().cpu().numpy()
             preds = (probs > 0.5).astype(int)
             targets = y_cls.detach().cpu().numpy()
@@ -584,9 +588,11 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
                 x, y_cls = x.to(device), y_cls.to(device)
 
                 ((_, y_main, _), _) = model(x)
+                # l_c_main = cls_criterion(y_main, y_cls * lambda_m)
                 l_c_main = cls_criterion(y_main, y_cls)
                 total_test_cls_loss += l_c_main.item()
 
+                # probs = torch.softmax(y_main * lambda_m, dim=1)[:, 1].cpu().numpy()
                 probs = torch.softmax(y_main, dim=1)[:, 1].cpu().numpy()
                 preds = (probs > 0.5).astype(int)
                 targets = y_cls.cpu().numpy()
