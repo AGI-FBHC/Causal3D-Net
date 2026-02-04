@@ -505,8 +505,8 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
             ((y_indi, y_main, y_cent),
              (individual_confounder, classify_feature, center_confounder)) = model(x)
 
-            # l_c_main = cls_criterion(y_main * lambda_m, y_cls)
-            l_c_main = cls_criterion(y_main, y_cls)
+            l_c_main = cls_criterion(y_main * lambda_m, y_cls)
+            # l_c_main = cls_criterion(y_main, y_cls)
 
             l_indi =  suc_criterion(individual_confounder, cluster) if use_indi else 0
             l_cent = suc_criterion(center_confounder, center) if use_cent else 0
