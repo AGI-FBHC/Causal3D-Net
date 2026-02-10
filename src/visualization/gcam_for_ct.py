@@ -135,7 +135,7 @@ def show_slices_with_cam(volume: torch.Tensor, cam: torch.Tensor, mask: torch.Te
         contours = measure.find_contours(mask_slice, level=0.5)
 
         for contour in contours:
-            plt.plot(contour[:, 1], contour[:, 0], linewidth=1, color='red')
+            plt.plot(contour[:, 1], contour[:, 0], linewidth=2, color='red')
 
     plt.axis('off')
 

@@ -27,7 +27,7 @@ def show_ct_slice(img_slice, mask_slice=None, save_path=None):
     if mask_slice is not None:
         contours = measure.find_contours(mask_slice, level=0.5)
         for contour in contours:
-            plt.plot(contour[:, 1], contour[:, 0], color="red", linewidth=1)
+            plt.plot(contour[:, 1], contour[:, 0], color="red", linewidth=2)
 
     plt.axis("off")
 

@@ -329,6 +329,7 @@ def train_Causal3DNet(train_excel: str, test_excel: str,
         best_model_save_path = os.path.join(current_dir, "best_model.pth")
         last_model_save_path = os.path.join(current_dir, "last_model.pth")
 
+    logger.info(f"Model weight path is: {model_weight}")
     logger.info(f"Training dataset path is: {train_excel}")
     logger.info(f"Test dataset path is: {test_excel}")
 
