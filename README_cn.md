@@ -1,4 +1,4 @@
-# Causal3D-Net: 一种用于多中心小样本增强CT胰腺癌诊断的因果模型
+# Causal3D-Net: 一种基于多中心增强CT因果学习的胰腺癌诊断模型
 
 <p align="center">
   <a href="README.md">English</a> |

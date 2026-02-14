@@ -1,4 +1,4 @@
-# Causal3D-Net: A causal model for multi-center small-sample pancreatic cancer diagnosis using contrast-enhanced CT
+# Causal3D-Net: A Causal Learning–Driven Pancreatic Cancer Diagnosis Model for Multi-Center Contrast-Enhanced CT Data
 
 <p align="center">
   <a href="README.md">English</a> |
