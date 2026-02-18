@@ -9,6 +9,8 @@ import numpy as np
 import plotly.graph_objects as go
 import os
 import matplotlib.pyplot as plt
+import nibabel as nib
+import SimpleITK as sitk
 
 from src.augmentation.window import rescale_back
 
@@ -96,7 +98,6 @@ def show_middle_slice(volume, save_name, title="", mask=None):
     plt.close()
 
 
-
 def visualize_prediction(image, gt_mask, pred_mask, slice_idx=None,
                          alpha_gt=0.4, alpha_pred=0.4,
                          save_path=None, compute_dice_fn=None):
@@ -179,5 +180,67 @@ def save_slices(image3d, out_dir, prefix):
         slice_path = os.path.join(out_dir, f"{prefix}_slice_{d:03d}.png")
         plt.savefig(slice_path, bbox_inches='tight', pad_inches=0)
         plt.close()
+
+
+def show_slice_with_contour(volume, save_name, index, title="", mask=None):
+    """
+    可视化指定层，并用红色线条绘制mask轮廓
+    :param volume: 3D图像, shape=(D, H, W)
+    :param save_name: 保存路径
+    :param index: 指定可视化的层号
+    :param title: 图像标题
+    :param mask: 可选3D掩码, shape=(D, H, W)
+    """
+    volume = np.clip(volume, -100, 240)
+    print(f"volume.shape = {volume.shape}")
+    if volume.ndim != 3:
+        print("输入必须为3D体数据")
+        return
+    if index < 0 or index >= volume.shape[0]:
+        print(f"index={index}超出范围，volume.shap={volume.shape}")
+        return
+    slice_img = volume[index, :, :]
+    # slice_img = volume[:, :, index]
+    plt.figure(figsize=(5, 5))
+    plt.imshow(slice_img, cmap='gray')
+    if mask is not None:
+        if mask.shape != volume.shape:
+            print("mask 与 volume 尺寸不一致")
+            return
+        mask_slice = mask[index, :, :]
+        # mask_slice = mask[:, :, index]
+        # 如果 mask 是多label（1,2,3），统一转为二值轮廓
+        binary_mask = mask_slice > 0
+        # 使用 contour 画轮廓
+        plt.contour(binary_mask, levels=[0.5], colors='red', linewidths=0.5)
+    plt.title(title)
+    plt.axis('off')
+    plt.savefig(save_name, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+
+if __name__ == "__main__":
+    img_id = "Center02Img00046"
+    index = 26
+    dataset_dir = "/home/huangdn/Causal3D-Net/src/dataset"
+    save_dir = "/home/huangdn/Causal3D-Net/src/logging_record"
+    save_path = os.path.join(save_dir, f"{img_id}.png")
+    msk_id = img_id.replace("Img", "Mask")
+    end_key = "_private.nii.gz"
+    img_file_name = f"{img_id}{end_key}"
+    msk_file_name = f"{msk_id}{end_key}"
+    img_path = os.path.join(dataset_dir, "images", img_file_name)
+    msk_path = os.path.join(dataset_dir, "masks", msk_file_name)
+    img = sitk.ReadImage(img_path)
+    msk = sitk.ReadImage(msk_path)
+    img = sitk.GetArrayFromImage(img)
+    msk = sitk.GetArrayFromImage(msk)
+    show_slice_with_contour(
+        volume=img,
+        mask=msk,
+        index=index,
+        save_name=save_path,
+    )
+    pass
 
 
