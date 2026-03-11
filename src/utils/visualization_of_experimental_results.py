@@ -104,9 +104,20 @@ def vis_10_folds_cv(
 
 
 def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx",
-             save_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.png"):
-    plt.rcParams['font.size'] = 15
+             save_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.svg"):
 
+    # ===== 图形风格设置（论文推荐）=====
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 20
+    plt.rcParams['axes.labelsize'] = 20
+    plt.rcParams['xtick.labelsize'] = 20
+    plt.rcParams['ytick.labelsize'] = 20
+    plt.rcParams['legend.fontsize'] = 20
+    plt.rcParams['legend.title_fontsize'] = 20
+    plt.rcParams['svg.fonttype'] = 'none'
+    plt.rcParams['axes.linewidth'] = 1
+
+    # ===== 模型顺序 =====
     order = [
         "Baseline",
         "Baseline+ECRM",
@@ -114,14 +125,16 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
         "CCLM(ECRM+ICRM)"
     ]
 
+    # ===== 指标 =====
     metrics = ["Acc", "AUC", "Sen", "Spe", "Prec", "F1"]
 
     df = pd.read_excel(excel_path)
-    df = df[df["Model"].isin(order)]  # 按定义顺序筛选
+    df = df[df["Model"].isin(order)]
+
     n_model = len(order)
     n_metric = len(metrics)
 
-    # 柱状图参数
+    # ===== 柱状图参数 =====
     bar_width = 0.12
     inner_gap = 0.03
     group_gap = 0.3
@@ -131,21 +144,29 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
 
     palette = sns.color_palette("Set2", n_model)
 
+    # ===== 创建画布 =====
     plt.figure(figsize=(10, 6))
 
+    # ===== 绘制柱状图 =====
     for i, model in enumerate(order):
-        values = df[df["Model"] == model][metrics].values.flatten()
-        bar_x = x_positions + i * (bar_width + inner_gap)
-        plt.bar(bar_x,
-                values,
-                width=bar_width,
-                label=model,
-                color=palette[i],
-                edgecolor="black",
-                linewidth=0.5)
 
-    # 设置x轴
-    plt.xticks(x_positions + group_width/2 - bar_width/2, metrics)
+        values = df[df["Model"] == model][metrics].values.flatten()
+
+        bar_x = x_positions + i * (bar_width + inner_gap)
+
+        plt.bar(
+            bar_x,
+            values,
+            width=bar_width,
+            label=model,
+            color=palette[i],
+            edgecolor="black",
+            linewidth=0.6
+        )
+
+    # ===== X轴 =====
+    plt.xticks(x_positions + group_width / 2 - bar_width / 2, metrics)
+
     plt.ylim(0.8, 0.98)
     plt.ylabel("Value")
 
@@ -158,15 +179,25 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
     )
 
     plt.tight_layout()
-    plt.savefig(save_path, dpi=1000, bbox_inches='tight', transparent=False)
+    plt.savefig(save_path, format="svg", bbox_inches='tight')
     plt.show()
 
 
 def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx",
-             save_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.png"):
-    plt.rcParams['font.size'] = 15
+             save_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.svg"):
 
-    # 模型顺序（保持逻辑递进）
+    # ===== 图形风格设置（论文推荐）=====
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 20
+    plt.rcParams['axes.labelsize'] = 20
+    plt.rcParams['xtick.labelsize'] = 20
+    plt.rcParams['ytick.labelsize'] = 20
+    plt.rcParams['legend.fontsize'] = 20
+    plt.rcParams['legend.title_fontsize'] = 20
+    plt.rcParams['svg.fonttype'] = 'none'
+    plt.rcParams['axes.linewidth'] = 1
+
+    # ===== 模型顺序（保持逻辑递进）=====
     order = [
         "Baseline",
         "Baseline+CCLM",
@@ -174,15 +205,16 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
         "Ours(CCLM+ACIM)"
     ]
 
+    # ===== 指标 =====
     metrics = ["Acc", "AUC", "Sen", "Spe", "Prec", "F1"]
 
-    # 读取数据
+    # ===== 读取数据 =====
     df = pd.read_excel(excel_path)
-    df = df[df["Model"].isin(order)]  # 保留需要的模型
+    df = df[df["Model"].isin(order)]
+
     n_model = len(order)
     n_metric = len(metrics)
 
-    # 柱状图参数
     bar_width = 0.12
     inner_gap = 0.03
     group_gap = 0.3
@@ -192,25 +224,32 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
 
     palette = sns.color_palette("Set2", n_model)
 
+    # ===== 创建画布 =====
     plt.figure(figsize=(10, 6))
 
+    # ===== 绘制柱状图 =====
     for i, model in enumerate(order):
-        values = df[df["Model"] == model][metrics].values.flatten()
-        bar_x = x_positions + i * (bar_width + inner_gap)
-        plt.bar(bar_x,
-                values,
-                width=bar_width,
-                label=model,
-                color=palette[i],
-                edgecolor="black",
-                linewidth=0.5)
 
-    # 坐标轴设置
+        values = df[df["Model"] == model][metrics].values.flatten()
+
+        bar_x = x_positions + i * (bar_width + inner_gap)
+
+        plt.bar(
+            bar_x,
+            values,
+            width=bar_width,
+            label=model,
+            color=palette[i],
+            edgecolor="black",
+            linewidth=0.6
+        )
+
+    # ===== X轴 =====
     plt.xticks(x_positions + group_width / 2 - bar_width / 2, metrics)
     plt.ylim(0.8, 0.98)
     plt.ylabel("Value")
 
-    # 图例
+    # ===== 图例 =====
     plt.legend(
         title="Model",
         loc="upper center",
@@ -220,7 +259,9 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
     )
 
     plt.tight_layout()
-    plt.savefig(save_path, dpi=1000, bbox_inches='tight', transparent=False)
+
+    plt.savefig(save_path,format="svg", bbox_inches='tight')
+    plt.savefig(save_path.replace(".svg", ".pdf"), bbox_inches='tight')
     plt.show()
 
 
@@ -351,7 +392,7 @@ def vis_sota_model(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/com
 if __name__ == '__main__':
     # vis_10_folds_cv()
     vis_CCLM()
-    # vis_ACIM()
+    vis_ACIM()
     # vis_ablation()
     # vis_sota_model()
     pass

@@ -202,7 +202,7 @@ def show_slice_with_contour(volume, save_name, index, title="", mask=None):
     slice_img = volume[index, :, :]
     # slice_img = volume[:, :, index]
     plt.figure(figsize=(5, 5))
-    plt.imshow(slice_img, cmap='gray')
+    plt.imshow(slice_img, cmap='gray', vmin=-100, vmax=240)
     if mask is not None:
         if mask.shape != volume.shape:
             print("mask 与 volume 尺寸不一致")
@@ -220,8 +220,8 @@ def show_slice_with_contour(volume, save_name, index, title="", mask=None):
 
 
 if __name__ == "__main__":
-    img_id = "Center02Img00046"
-    index = 26
+    img_id = "Center02Img00086"
+    index = 147
     dataset_dir = "/home/huangdn/Causal3D-Net/src/dataset"
     save_dir = "/home/huangdn/Causal3D-Net/src/logging_record"
     save_path = os.path.join(save_dir, f"{img_id}.png")
