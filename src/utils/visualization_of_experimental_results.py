@@ -112,8 +112,8 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
     plt.rcParams['axes.labelsize'] = 20
     plt.rcParams['xtick.labelsize'] = 20
     plt.rcParams['ytick.labelsize'] = 20
-    plt.rcParams['legend.fontsize'] = 20
-    plt.rcParams['legend.title_fontsize'] = 20
+    plt.rcParams['legend.fontsize'] = 16
+    plt.rcParams['legend.title_fontsize'] = 16
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['axes.linewidth'] = 1
 
@@ -145,16 +145,14 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
     palette = sns.color_palette("Set2", n_model)
 
     # ===== 创建画布 =====
-    plt.figure(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     # ===== 绘制柱状图 =====
     for i, model in enumerate(order):
-
         values = df[df["Model"] == model][metrics].values.flatten()
-
         bar_x = x_positions + i * (bar_width + inner_gap)
 
-        plt.bar(
+        ax.bar(
             bar_x,
             values,
             width=bar_width,
@@ -165,17 +163,21 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
         )
 
     # ===== X轴 =====
-    plt.xticks(x_positions + group_width / 2 - bar_width / 2, metrics)
+    ax.set_xticks(x_positions + group_width / 2 - bar_width / 2)
+    ax.set_xticklabels(metrics)
 
-    plt.ylim(0.8, 0.98)
-    plt.ylabel("Value")
+    ax.set_ylim(0.8, 0.98)
+    ax.set_ylabel("Value")
 
-    plt.legend(
+    # ===== 图例放到图内 =====
+    ax.legend(
         title="Model",
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.12),
-        ncol=2,
-        frameon=False
+        loc="upper right",
+        ncol=1,
+        frameon=True,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=0.85
     )
 
     plt.tight_layout()
@@ -192,8 +194,8 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
     plt.rcParams['axes.labelsize'] = 20
     plt.rcParams['xtick.labelsize'] = 20
     plt.rcParams['ytick.labelsize'] = 20
-    plt.rcParams['legend.fontsize'] = 20
-    plt.rcParams['legend.title_fontsize'] = 20
+    plt.rcParams['legend.fontsize'] = 16
+    plt.rcParams['legend.title_fontsize'] = 16
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['axes.linewidth'] = 1
 
@@ -225,16 +227,14 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
     palette = sns.color_palette("Set2", n_model)
 
     # ===== 创建画布 =====
-    plt.figure(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     # ===== 绘制柱状图 =====
     for i, model in enumerate(order):
-
         values = df[df["Model"] == model][metrics].values.flatten()
-
         bar_x = x_positions + i * (bar_width + inner_gap)
 
-        plt.bar(
+        ax.bar(
             bar_x,
             values,
             width=bar_width,
@@ -244,24 +244,27 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
             linewidth=0.6
         )
 
-    # ===== X轴 =====
-    plt.xticks(x_positions + group_width / 2 - bar_width / 2, metrics)
-    plt.ylim(0.8, 0.98)
-    plt.ylabel("Value")
+    # ===== 坐标轴 =====
+    ax.set_xticks(x_positions + group_width / 2 - bar_width / 2)
+    ax.set_xticklabels(metrics)
+    ax.set_ylim(0.8, 0.98)
+    ax.set_ylabel("Value")
 
-    # ===== 图例 =====
-    plt.legend(
+    # ===== 图例放到图内右上角 =====
+    ax.legend(
         title="Model",
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.12),
-        ncol=2,
-        frameon=False
+        loc="upper right",
+        ncol=1,
+        frameon=True,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=0.85
     )
 
     plt.tight_layout()
 
-    plt.savefig(save_path,format="svg", bbox_inches='tight')
-    plt.savefig(save_path.replace(".svg", ".pdf"), bbox_inches='tight')
+    plt.savefig(save_path, format="svg", bbox_inches='tight')
+    plt.savefig(save_path.replace(".svg", ".pdf"), format="pdf", bbox_inches='tight')
     plt.show()
 
 

@@ -96,14 +96,10 @@ python -m src.main causal \
 如果您在研究中觉得本仓库有帮助，请考虑引用我们的工作：
 
 ```
-@article{huang2025causal3dnet,
-  title   = {Causal3D-Net: A Causal Model for Multi-center Small-sample Pancreatic Cancer Diagnosis Using Contrast-enhanced CT},
-  author  = {Denan, Huang and Others},
-  journal = {mabye TIP, TMI or MIA},
-  year    = {2025 or 2026},
-  volume  = {XX},
-  pages   = {XX--XX},
-  doi     = {10.XXXX/j.media.2025.XXXXX}
+@unpublished{huang2025causal3dnet,
+  title  = {Causal3D-Net: A Causal Model for Multi-center Small-sample Pancreatic Cancer Diagnosis Using Contrast-enhanced CT},
+  author = {Huang, Denan and others},
+  note   = {Manuscript under review}
 }
 ```
 
