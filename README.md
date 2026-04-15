@@ -97,7 +97,7 @@ If you find this repository helpful in your research, please consider citing our
 
 ```
 @unpublished{huang2025causal3dnet,
-  title  = {Causal3D-Net: A Causal Model for Multi-center Small-sample Pancreatic Cancer Diagnosis Using Contrast-enhanced CT},
+  title  = {Causal3D-Net: A Causal Learning–Driven Pancreatic Cancer Diagnosis Model for Multi-Center Contrast-Enhanced CT Data},
   author = {Huang, Denan and others},
   note   = {Manuscript under review}
 }
