@@ -1,4 +1,4 @@
-# Causal3D-Net: A Causal Learning–Driven Pancreatic Cancer Diagnosis Model for Multi-Center Contrast-Enhanced CT Data
+# Causal3D-Net: A Causal Learning-Driven Pancreatic Cancer Diagnosis Model for Multi-Center Contrast-Enhanced CT Data
 
 <p align="center">
   <a href="README.md">English</a> |
@@ -13,9 +13,9 @@
   <img src="https://img.shields.io/badge/License-MIT-blue" />
   <img src="https://img.shields.io/badge/Release-0.1-blue" />
 </p>
-This is the official repository of Causal3DNet — a dedicated model for pancreatic cancer diagnosis.
+This is the official repository of Causal3DNet, a dedicated model for pancreatic cancer diagnosis.
 
-The model is based on causal learning theory, enabling it to distinguish between causal factors and confounders. By ultimately leveraging reliable causal features as diagnostic evidence, the model achieves stable learning and diagnosis.
+The model is based on causal learning theory, enabling it to distinguish causal factors from confounding factors. It ultimately uses reliable causal features as the basis for diagnosis, thereby achieving stable diagnostic learning.
 
 The figure below illustrates the model architecture proposed in the paper:
 
@@ -96,7 +96,7 @@ python -m src.main causal \
 If you find this repository helpful in your research, please consider citing our work:
 
 ```
-@unpublished{huang2025causal3dnet,
+@unpublished{huang2026causal3dnet,
   title  = {Causal3D-Net: A Causal Learning–Driven Pancreatic Cancer Diagnosis Model for Multi-Center Contrast-Enhanced CT Data},
   author = {Huang, Denan and others},
   note   = {Manuscript under review}

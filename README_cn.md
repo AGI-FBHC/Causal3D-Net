@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/License-MIT-blue" />
   <img src="https://img.shields.io/badge/Release-0.1-blue" />
 </p>
-这是Causal3DNet的官方仓库——针对胰腺癌诊断的专用模型，
+这是 Causal3DNet 的官方仓库，是一个针对胰腺癌诊断的专用模型，
 
 模型基于因果学习理论，让模型能够辨别因果因素和混杂因子，最后使用可靠因果特征作为诊断依据，实现稳定学习诊断，
 
@@ -96,7 +96,7 @@ python -m src.main causal \
 如果您在研究中觉得本仓库有帮助，请考虑引用我们的工作：
 
 ```
-@unpublished{huang2025causal3dnet,
+@unpublished{huang2026causal3dnet,
   title  = {Causal3D-Net: A Causal Learning–Driven Pancreatic Cancer Diagnosis Model for Multi-Center Contrast-Enhanced CT Data},
   author = {Huang, Denan and others},
   note   = {Manuscript under review}
