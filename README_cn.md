@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/License-MIT-blue" />
   <img src="https://img.shields.io/badge/Release-0.1-blue" />
 </p>
-这是 Causal3DNet 的官方仓库，是一个针对胰腺癌诊断的专用模型，
+这是 Causal3D-Net 的官方仓库，是一个针对胰腺癌诊断的专用模型，
 
 模型基于因果学习理论，让模型能够辨别因果特征和混杂特征，最后使用可靠因果特征作为诊断依据，实现稳定学习诊断，
 

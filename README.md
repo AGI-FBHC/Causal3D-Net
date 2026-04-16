@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/License-MIT-blue" />
   <img src="https://img.shields.io/badge/Release-0.1-blue" />
 </p>
-This is the official repository of Causal3DNet, a dedicated model for pancreatic cancer diagnosis.
+This is the official repository of Causal3D-Net, a dedicated model for pancreatic cancer diagnosis.
 
 The model is based on causal learning theory, enabling it to identify causal features and confounding features, and ultimately use reliable causal features as the basis for diagnosis, thereby achieving stable diagnostic learning.
 
