@@ -302,7 +302,7 @@ if __name__ == "__main__":
         help="Path to save internal clustering metrics.",
     )
     parser.add_argument("--min_k", type=int, default=4)
-    parser.add_argument("--max_k", type=int, default=10)
+    parser.add_argument("--max_k", type=int, default=16)
     parser.add_argument("--feature_num", type=int, default=256)
     parser.add_argument(
         "--reference_num",
