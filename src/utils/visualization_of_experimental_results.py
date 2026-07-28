@@ -120,9 +120,9 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
     # ===== 模型顺序 =====
     order = [
         "Baseline",
-        "Baseline+ECRM",
-        "Baseline+ICRM",
-        "CCLM(ECRM+ICRM)"
+        "ECRM+ortL",
+        "ICRM+ortL",
+        "CCLM(ECRM+ICRM)+ortL"
     ]
 
     # ===== 指标 =====
@@ -144,8 +144,8 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
 
     palette = sns.color_palette("Set2", n_model)
 
-    # ===== 创建画布 =====
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # ===== 创建画布：适当增加高度，为右上角图例留出纵向空间 =====
+    fig, ax = plt.subplots(figsize=(11, 7))
 
     # ===== 绘制柱状图 =====
     for i, model in enumerate(order):
@@ -169,7 +169,7 @@ def vis_CCLM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/CCLM.xlsx
     ax.set_ylim(0.8, 0.98)
     ax.set_ylabel("Value")
 
-    # ===== 图例放到图内 =====
+    # ===== 图例保留在图内右上角 =====
     ax.legend(
         title="Model",
         loc="upper right",
@@ -202,9 +202,9 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
     # ===== 模型顺序（保持逻辑递进）=====
     order = [
         "Baseline",
-        "Baseline+CCLM",
-        "Baseline+ACIM",
-        "Ours(CCLM+ACIM)"
+        "CCLM+ortL",
+        "ACIM+ortL",
+        "Ours(CCLM+ACIM+ortL)"
     ]
 
     # ===== 指标 =====
@@ -226,8 +226,8 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
 
     palette = sns.color_palette("Set2", n_model)
 
-    # ===== 创建画布 =====
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # ===== 创建画布：适当增加高度，为右上角图例留出纵向空间 =====
+    fig, ax = plt.subplots(figsize=(11, 7))
 
     # ===== 绘制柱状图 =====
     for i, model in enumerate(order):
@@ -250,7 +250,7 @@ def vis_ACIM(excel_path="/home/huangdn/Causal3D-Net/src/logging_record/ACIM.xlsx
     ax.set_ylim(0.8, 0.98)
     ax.set_ylabel("Value")
 
-    # ===== 图例放到图内右上角 =====
+    # ===== 图例保留在图内右上角 =====
     ax.legend(
         title="Model",
         loc="upper right",
@@ -399,8 +399,6 @@ if __name__ == '__main__':
     # vis_ablation()
     # vis_sota_model()
     pass
-
-
 
 
 
